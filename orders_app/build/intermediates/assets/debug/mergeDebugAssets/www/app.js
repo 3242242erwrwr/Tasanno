@@ -1,11 +1,17 @@
 // TASANNO ZAKAZLAR - REAL-TIME ORDER RECEIVER
 const API_BASE_URL = "https://tasanno-im7q.onrender.com";
-const SYNC_CHANNEL = "tasanno_orders_channel_998";
-const SYNC_URL = `https://ntfy.sh/${SYNC_CHANNEL}`;
 
 let orders = [];
 let currentFilter = 'all';
 let isSoundEnabled = true;
+
+let currentCourier = null;
+try {
+    const savedC = localStorage.getItem('currentCourier');
+    if (savedC) currentCourier = JSON.parse(savedC);
+} catch (e) { currentCourier = null; }
+
+let courierPollInterval = null;
 
 // Load deleted order IDs
 let deletedOrderIds = new Set();
@@ -22,13 +28,13 @@ try {
 try {
     const saved = localStorage.getItem('tasanno_orders');
     if (saved) {
-        orders = JSON.parse(saved).filter(o => !deletedOrderIds.has(String(o.id)) && o.status !== 'Bekor qilindi');
+        orders = JSON.parse(saved).filter(o => !deletedOrderIds.has(String(o.id)));
     }
 } catch (e) {
     orders = [];
 }
 
-// AUDIO CHIME (Web Audio API Synthesizer)
+// AUDIO CHIME
 function playOrderChime() {
     if (!isSoundEnabled) return;
     try {
@@ -36,32 +42,17 @@ function playOrderChime() {
         if (!AudioCtx) return;
         const ctx = new AudioCtx();
 
-        // 1st chime tone
         const osc1 = ctx.createOscillator();
         const gain1 = ctx.createGain();
         osc1.type = 'sine';
-        osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc1.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
+        osc1.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc1.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
         gain1.gain.setValueAtTime(0.4, ctx.currentTime);
         gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
         osc1.connect(gain1);
         gain1.connect(ctx.destination);
         osc1.start(ctx.currentTime);
         osc1.stop(ctx.currentTime + 0.4);
-
-        // 2nd chime tone
-        setTimeout(() => {
-            const osc2 = ctx.createOscillator();
-            const gain2 = ctx.createGain();
-            osc2.type = 'triangle';
-            osc2.frequency.setValueAtTime(1174.66, ctx.currentTime); // D6
-            gain2.gain.setValueAtTime(0.35, ctx.currentTime);
-            gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-            osc2.connect(gain2);
-            gain2.connect(ctx.destination);
-            osc2.start(ctx.currentTime);
-            osc2.stop(ctx.currentTime + 0.6);
-        }, 160);
     } catch (e) {
         console.error('Audio chime error:', e);
     }
@@ -80,13 +71,14 @@ const toast = document.getElementById('toast');
 
 // INIT
 function initApp() {
-    // Splash screen delay
     setTimeout(() => {
         if (splashScreen) {
             splashScreen.style.opacity = '0';
             splashScreen.style.display = 'none';
         }
         if (appContainer) appContainer.classList.remove('hidden');
+
+        checkCourierAuth();
     }, 600);
 
     renderOrders();
@@ -95,9 +87,96 @@ function initApp() {
     setupListeners();
 }
 
-// SETUP LISTENERS
+function checkCourierAuth() {
+    const courierAuthModal = document.getElementById('courierAuthModal');
+    const courierWaitingModal = document.getElementById('courierWaitingModal');
+
+    if (!currentCourier) {
+        if (courierAuthModal) courierAuthModal.classList.remove('hidden');
+        return false;
+    }
+
+    if (currentCourier.status !== 'Approved') {
+        if (courierAuthModal) courierAuthModal.classList.add('hidden');
+        if (courierWaitingModal) {
+            const nameElem = document.getElementById('waitCourierName');
+            const phoneElem = document.getElementById('waitCourierPhone');
+            if (nameElem) nameElem.textContent = currentCourier.name;
+            if (phoneElem) phoneElem.textContent = currentCourier.phone;
+            courierWaitingModal.classList.remove('hidden');
+        }
+        startCourierStatusPolling();
+        return false;
+    }
+
+    if (courierAuthModal) courierAuthModal.classList.add('hidden');
+    if (courierWaitingModal) courierWaitingModal.classList.add('hidden');
+    if (courierPollInterval) clearInterval(courierPollInterval);
+    return true;
+}
+
+function startCourierStatusPolling() {
+    if (courierPollInterval) clearInterval(courierPollInterval);
+    courierPollInterval = setInterval(async () => {
+        if (!currentCourier || !currentCourier.id) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/couriers/${currentCourier.id}/status`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.status === 'Approved') {
+                    currentCourier.status = 'Approved';
+                    localStorage.setItem('currentCourier', JSON.stringify(currentCourier));
+                    clearInterval(courierPollInterval);
+                    document.getElementById('courierWaitingModal')?.classList.add('hidden');
+                    showToast("✅ Admin ruxsat berdi! Xush kelibsiz!");
+                    renderOrders();
+                } else if (data.status === 'Rejected') {
+                    alert("Admin sizning ruxsat so'rovingizni rad etdi.");
+                    localStorage.removeItem('currentCourier');
+                    currentCourier = null;
+                    clearInterval(courierPollInterval);
+                    document.getElementById('courierWaitingModal')?.classList.add('hidden');
+                    document.getElementById('courierAuthModal')?.classList.remove('hidden');
+                }
+            }
+        } catch(e){}
+    }, 1500);
+}
+
+async function handleCourierSubmit() {
+    const nameInput = document.getElementById('courierNameInput');
+    const phoneInput = document.getElementById('courierPhoneInput');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+
+    if (!name || !phone) {
+        showToast("Iltimos, Ismingiz va Telefoningizni kiriting!");
+        return;
+    }
+
+    const courierId = '#COUR-' + Math.floor(100000 + Math.random() * 900000);
+    currentCourier = {
+        id: courierId,
+        name: name,
+        phone: phone,
+        status: 'Pending'
+    };
+
+    localStorage.setItem('currentCourier', JSON.stringify(currentCourier));
+
+    try {
+        await fetch(`${API_BASE_URL}/api/couriers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentCourier)
+        });
+    } catch(e){}
+
+    checkCourierAuth();
+}
+
 function setupListeners() {
-    // Filter tabs
     document.querySelectorAll('.filter-chip').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
@@ -107,7 +186,6 @@ function setupListeners() {
         });
     });
 
-    // Sound toggle
     soundToggleBtn?.addEventListener('click', () => {
         isSoundEnabled = !isSoundEnabled;
         if (isSoundEnabled) {
@@ -122,15 +200,18 @@ function setupListeners() {
         }
     });
 
-    // Manual Refresh
     refreshBtn?.addEventListener('click', () => {
         syncOrdersFromBackend(true);
     });
+
+    const submitAuthBtn = document.getElementById('submitCourierAuthBtn');
+    if (submitAuthBtn) {
+        submitAuthBtn.addEventListener('click', handleCourierSubmit);
+    }
 }
 
 let previousOrdersHash = "";
 
-// REALTIME BACKEND SYNC
 async function syncOrdersFromBackend(showToastMsg = false) {
     try {
         const resp = await fetch(`${API_BASE_URL}/api/orders`, { cache: 'no-cache' });
@@ -169,48 +250,37 @@ function startRealtimeSync() {
     }, 2000);
 }
 
-// PROCESS NEW ORDER
-function processIncomingOrder(orderObj) {
-    if (!orderObj || !orderObj.id) return false;
-    if (deletedOrderIds.has(String(orderObj.id))) return false;
-
-    const exists = orders.some(o => String(o.id) === String(orderObj.id));
-    if (!exists) {
-        orderObj.status = orderObj.status || 'Yangi';
-        orderObj.isNewHighlight = true;
-        orders.unshift(orderObj);
-        saveOrders();
-        renderOrders();
-        updateStats();
-        playOrderChime();
-        showToast(`🔔 Yangi buyurtma keldi: #${orderObj.id}`);
-        return true;
-    }
-    return false;
-}
-
-// UPDATE STATUS
 function updateOrderStatus(orderId, newStatus) {
     const ord = orders.find(o => String(o.id) === String(orderId));
     if (!ord) return;
 
+    if (!currentCourier || currentCourier.status !== 'Approved') {
+        showToast("Ruxsatingiz tasdiqlanmagan!");
+        checkCourierAuth();
+        return;
+    }
+
     ord.status = newStatus;
+    ord.courierName = currentCourier.name;
+    ord.courierPhone = currentCourier.phone;
     delete ord.isNewHighlight;
     saveOrders();
     renderOrders();
     updateStats();
 
-    // Sync status change to Render Backend Server
     fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({
+            status: newStatus,
+            courierName: currentCourier.name,
+            courierPhone: currentCourier.phone
+        })
     }).catch(e => console.warn("Backend status update error:", e));
 
     showToast(`Buyurtma #${orderId} holati: ${newStatus}`);
 }
 
-// CANCEL ORDER (UPDATE STATUS TO 'Bekor qilindi')
 function cancelAndRemoveOrder(orderId) {
     updateOrderStatus(orderId, 'Bekor qilindi');
 }
@@ -219,8 +289,8 @@ function saveOrders() {
     localStorage.setItem('tasanno_orders', JSON.stringify(orders));
 }
 
-// RENDER ORDERS
 function renderOrders() {
+    if (!ordersContainer) return;
     ordersContainer.innerHTML = '';
 
     const filtered = orders.filter(o => {
@@ -243,7 +313,6 @@ function renderOrders() {
         const statusClass = (ord.status || 'Yangi').replace(/\s+/g, '-');
         card.className = `order-card ${ord.isNewHighlight ? 'new-order-highlight' : ''}`;
 
-        // Format items
         const itemsHtml = (ord.items || []).map(item => `
             <div class="order-item-row">
                 <span>• ${item.title} <strong>(${item.quantity} dona)</strong></span>
@@ -251,7 +320,6 @@ function renderOrders() {
             </div>
         `).join('');
 
-        // Clean phone for call
         const cleanPhone = (ord.phone || '').replace(/\s+/g, '').replace(/[^\d+]/g, '');
 
         card.innerHTML = `
@@ -263,7 +331,6 @@ function renderOrders() {
                 <span class="status-badge status-${statusClass}">${ord.status || 'Yangi'}</span>
             </div>
 
-            <!-- CUSTOMER BOX -->
             <div class="customer-box">
                 <div class="customer-details">
                     <span class="customer-name"><i class="fa-solid fa-user"></i> ${ord.name || 'Mijoz'}</span>
@@ -272,25 +339,21 @@ function renderOrders() {
                 ${cleanPhone ? `<a href="tel:${cleanPhone}" class="call-btn"><i class="fa-solid fa-phone"></i> Qo'ng'iroq</a>` : ''}
             </div>
 
-            <!-- ADDRESS -->
             <div class="address-box">
                 <i class="fa-solid fa-location-dot" style="color:var(--primary-color);margin-top:2px;"></i>
                 <span><strong>Manzil/Izoh:</strong> ${ord.address || 'Kiritilmagan'}</span>
             </div>
 
-            <!-- ITEMS -->
             <div class="order-items-list">
                 ${itemsHtml}
             </div>
 
-            <!-- TOTAL BAR -->
             <div class="order-total-bar">
                 <span class="payment-plan-tag">${ord.paymentType || "Naqd to'lov"}</span>
                 <span class="order-total-amount">${formatPrice(ord.total || 0)} so'm</span>
             </div>
-            ${ord.monthlyPayment ? `<div style="font-size:11px;color:var(--primary-color);font-weight:600;margin-bottom:8px;text-align:right;">Oylik to'lov: ${formatPrice(ord.monthlyPayment)} so'm/oy (${ord.installmentMonths} oy)</div>` : ''}
+            ${ord.courierName ? `<div style="font-size:12px;color:#60a5fa;font-weight:700;margin-top:4px;"><i class="fa-solid fa-motorcycle"></i> Kuryer: ${ord.courierName} (${ord.courierPhone || ''})</div>` : ''}
 
-            <!-- ACTION BUTTONS -->
             <div class="order-actions">
                 ${ord.status === 'Yangi' ? `
                     <button class="action-btn btn-accept" onclick="updateOrderStatus('${ord.id}', 'Qabul qilindi')">
@@ -337,7 +400,6 @@ function renderOrders() {
     });
 }
 
-// UPDATE STATS
 function updateStats() {
     const newCount = orders.filter(o => o.status === 'Yangi').length;
     const acceptedCount = orders.filter(o => o.status === 'Qabul qilindi').length;
@@ -353,14 +415,19 @@ function updateStats() {
     if (statTotalCount) statTotalCount.textContent = totalCount;
     if (statTotalSum) statTotalSum.textContent = `${formatPrice(totalSum)} so'm`;
 
-    document.getElementById('countAll').textContent = totalCount;
-    document.getElementById('countNew').textContent = newCount;
-    document.getElementById('countAccepted').textContent = acceptedCount;
-    document.getElementById('countDelivering').textContent = deliveringCount;
-    document.getElementById('countDelivered').textContent = deliveredCount;
+    const cAll = document.getElementById('countAll');
+    const cNew = document.getElementById('countNew');
+    const cAcc = document.getElementById('countAccepted');
+    const cDel = document.getElementById('countDelivering');
+    const cDone = document.getElementById('countDelivered');
+
+    if (cAll) cAll.textContent = totalCount;
+    if (cNew) cNew.textContent = newCount;
+    if (cAcc) cAcc.textContent = acceptedCount;
+    if (cDel) cDel.textContent = deliveringCount;
+    if (cDone) cDone.textContent = deliveredCount;
 }
 
-// UTILS
 function formatPrice(p) {
     return (p || 0).toLocaleString('fr-FR');
 }
@@ -372,7 +439,6 @@ function showToast(msg) {
     setTimeout(() => toast.classList.add('hidden'), 2500);
 }
 
-// RUN
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initApp);
 } else {

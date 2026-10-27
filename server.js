@@ -46,6 +46,7 @@ let products = [
 
 let orders = [];
 let users = [];
+let couriers = [];
 
 // Admin web route
 app.get('/admin', (req, res) => {
@@ -71,7 +72,6 @@ app.post('/api/users', (req, res) => {
 
     const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
 
-    // Match by unique ID or clean phone (if valid length)
     let existingUser = users.find(u => {
         if (id && String(u.id) === String(id)) return true;
         if (cleanPhone.length >= 7) {
@@ -100,6 +100,65 @@ app.post('/api/users', (req, res) => {
 
     users.unshift(newUser);
     res.status(201).json(newUser);
+});
+
+// ================= COURIERS MANAGEMENT API =================
+// GET all couriers
+app.get('/api/couriers', (req, res) => {
+    res.json(couriers);
+});
+
+// POST register or ping courier
+app.post('/api/couriers', (req, res) => {
+    const { id, name, phone } = req.body;
+    if (!name || !phone) {
+        return res.status(400).json({ error: 'Name and phone required' });
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    let existingCourier = couriers.find(c => (id && String(c.id) === String(id)) || (c.phone && c.phone.replace(/\D/g, '') === cleanPhone));
+
+    if (existingCourier) {
+        existingCourier.name = name;
+        existingCourier.phone = phone;
+        existingCourier.lastActive = new Date().toLocaleString('uz-UZ');
+        return res.json({ message: 'Courier updated', courier: existingCourier });
+    }
+
+    const newCourier = {
+        id: id || ('#COUR-' + Math.floor(100000 + Math.random() * 900000)),
+        name,
+        phone,
+        status: 'Pending', // Pending approval from Web Admin
+        registeredAt: new Date().toLocaleString('uz-UZ'),
+        lastActive: new Date().toLocaleString('uz-UZ')
+    };
+
+    couriers.unshift(newCourier);
+    res.status(201).json(newCourier);
+});
+
+// GET courier approval status
+app.get('/api/couriers/:id/status', (req, res) => {
+    const { id } = req.params;
+    const courier = couriers.find(c => String(c.id) === String(id) || (c.phone && c.phone.replace(/\D/g, '') === id.replace(/\D/g, '')));
+    if (courier) {
+        return res.json({ status: courier.status, courier });
+    }
+    res.json({ status: 'Pending' });
+});
+
+// PUT approve or reject courier (Web Admin)
+app.put('/api/couriers/:id/approve', (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body; // 'Approved' or 'Rejected'
+    const courier = couriers.find(c => String(c.id) === String(id));
+    if (courier) {
+        courier.status = status;
+        courier.lastActive = new Date().toLocaleString('uz-UZ');
+        return res.json({ message: `Courier ${status}`, courier });
+    }
+    res.status(404).json({ error: 'Courier not found' });
 });
 
 // GET products
@@ -176,13 +235,15 @@ app.post('/api/orders', (req, res) => {
     res.status(201).json(newOrder);
 });
 
-// PUT update order status
+// PUT update order status & courier info
 app.put('/api/orders/:id/status', (req, res) => {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, courierName, courierPhone } = req.body;
     const order = orders.find(o => String(o.id) === String(id));
     if (order) {
         order.status = status;
+        if (courierName) order.courierName = courierName;
+        if (courierPhone) order.courierPhone = courierPhone;
         return res.json({ message: 'Status updated', order });
     }
     res.status(404).json({ error: 'Order not found' });

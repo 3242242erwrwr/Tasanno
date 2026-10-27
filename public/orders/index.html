@@ -3,22 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>TASANNO ZAKAZLAR - Real-Time Receiver</title>
-    <!-- FontAwesome & Google Fonts -->
+    <title>TASANNO ZAKAZLAR - Buyurtmalar Boshqaruvi</title>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-    <!-- SPLASH SCREEN -->
+    <!-- 1. SPLASH SCREEN (NEON GLOW) -->
     <div id="splashScreen" class="splash-screen">
         <div class="splash-content">
             <div class="logo-box">
                 <i class="fa-solid fa-truck-fast logo-icon"></i>
             </div>
             <h1 class="splash-title">TASANNO ZAKAZLAR</h1>
-            <p class="splash-subtitle">Real-Time Buyurtmalar Markazi</p>
+            <p class="splash-subtitle">Buyurtmalarni Qabul Qilish Tizimi</p>
             <div class="loading-spinner"></div>
         </div>
     </div>
@@ -33,11 +32,13 @@
                     <i class="fa-solid fa-truck-fast"></i>
                 </div>
                 <div>
-                    <h2 class="brand-title">TASANNO ZAKAZLAR</h2>
-                    <span class="brand-subtitle"><i class="fa-solid fa-circle live-dot"></i> Live Sync Active</span>
+                    <h2 class="brand-name">TASANNO ZAKAZLAR</h2>
+                    <div class="live-status">
+                        <span class="live-dot"></span>
+                        <span id="connectionStatusText">Jonli aloqa faol</span>
+                    </div>
                 </div>
             </div>
-
             <div class="header-actions">
                 <button id="soundToggleBtn" class="icon-btn active" title="Ovozni yoqish/o'chirish">
                     <i class="fa-solid fa-volume-high"></i>
@@ -48,73 +49,96 @@
             </div>
         </header>
 
-        <!-- STATS OVERVIEW CARDS -->
+        <!-- STATS BAR -->
         <section class="stats-section">
-            <div class="stat-card new-card">
-                <div class="stat-icon-wrapper">
-                    <i class="fa-solid fa-bell"></i>
-                </div>
+            <div class="stat-card">
+                <div class="stat-icon new-stat"><i class="fa-solid fa-bell"></i></div>
                 <div class="stat-info">
-                    <span class="stat-value" id="statNewCount">0</span>
-                    <span class="stat-label">Yangi Kutilayotgan</span>
+                    <span class="stat-label">Yangi zakazlar</span>
+                    <strong class="stat-value" id="statNewCount">0</strong>
                 </div>
             </div>
-
-            <div class="stat-card total-card">
-                <div class="stat-icon-wrapper">
-                    <i class="fa-solid fa-boxes-packing"></i>
-                </div>
+            <div class="stat-card">
+                <div class="stat-icon total-stat"><i class="fa-solid fa-receipt"></i></div>
                 <div class="stat-info">
-                    <span class="stat-value" id="statTotalCount">0</span>
-                    <span class="stat-label">Jami Buyurtmalar</span>
+                    <span class="stat-label">Jami zakazlar</span>
+                    <strong class="stat-value" id="statTotalCount">0</strong>
                 </div>
             </div>
-
-            <div class="stat-card sum-card">
-                <div class="stat-icon-wrapper">
-                    <i class="fa-solid fa-sack-dollar"></i>
-                </div>
+            <div class="stat-card full-stat">
+                <div class="stat-icon sum-stat"><i class="fa-solid fa-wallet"></i></div>
                 <div class="stat-info">
-                    <span class="stat-value" id="statTotalSum">0 so'm</span>
-                    <span class="stat-label">Jami Tushum Summasi</span>
+                    <span class="stat-label">Bugungi umumiy summa:</span>
+                    <strong class="stat-value highlight" id="statTotalSum">0 so'm</strong>
                 </div>
             </div>
         </section>
 
         <!-- FILTER TABS -->
         <section class="filter-section">
-            <div class="filter-chips-container">
-                <button class="filter-chip active" data-filter="all">
-                    Barchasi <span class="chip-count" id="countAll">0</span>
-                </button>
-                <button class="filter-chip chip-new" data-filter="Yangi">
-                    Yangi <span class="chip-count" id="countNew">0</span>
-                </button>
-                <button class="filter-chip chip-accepted" data-filter="Qabul qilindi">
-                    Qabul qilingan <span class="chip-count" id="countAccepted">0</span>
-                </button>
-                <button class="filter-chip chip-delivering" data-filter="Yetkazilmoqda">
-                    Yetkazilmoqda <span class="chip-count" id="countDelivering">0</span>
-                </button>
-                <button class="filter-chip chip-delivered" data-filter="Yetkazildi">
-                    Yetkazilgan <span class="chip-count" id="countDelivered">0</span>
-                </button>
+            <div class="filter-tabs">
+                <button class="filter-chip active" data-filter="all">Barchasi (<span id="countAll">0</span>)</button>
+                <button class="filter-chip" data-filter="Yangi">Yangi (<span id="countNew">0</span>)</button>
+                <button class="filter-chip" data-filter="Qabul qilindi">Qabul qilindi (<span id="countAccepted">0</span>)</button>
+                <button class="filter-chip" data-filter="Yetkazilmoqda">Yetkazilmoqda (<span id="countDelivering">0</span>)</button>
+                <button class="filter-chip" data-filter="Yetkazildi">Yetkazildi (<span id="countDelivered">0</span>)</button>
             </div>
         </section>
 
-        <!-- ORDERS FEED CONTAINER -->
+        <!-- ORDERS LIST -->
         <main class="orders-section">
             <div id="ordersContainer" class="orders-container">
-                <!-- Order cards rendered dynamically by app.js -->
+                <!-- Orders will be rendered here dynamically -->
             </div>
         </main>
     </div>
 
-    <!-- NOTIFICATION TOAST -->
-    <div id="toast" class="toast hidden">
-        <i class="fa-solid fa-bell"></i>
-        <span id="toastMessage">Yangi buyurtma keldi!</span>
+    <!-- COURIER AUTHENTICATION MODAL -->
+    <div id="courierAuthModal" class="modal-overlay hidden" style="z-index: 10000;">
+        <div class="modal-content center-modal auth-modal-content" style="background:#0f172a; border:1px solid #334155; border-radius:20px; padding:24px; color:white;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="width:60px; height:60px; background:rgba(59,130,246,0.15); color:#60a5fa; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 12px;">
+                    <i class="fa-solid fa-motorcycle"></i>
+                </div>
+                <h3 style="font-size:20px; font-weight:800;">Kuryer Tizimiga Kirish</h3>
+                <p style="font-size:12px; color:#94a3b8; margin-top:4px;">Buyurtmalarni qabul qilish uchun Ism va Telefon raqamingizni kiriting</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:14px;">
+                <div>
+                    <label style="font-size:12px; font-weight:700; color:#94a3b8; display:block; margin-bottom:4px;">KURYER ISMI:</label>
+                    <input type="text" id="courierNameInput" placeholder="Masalan: Ali Valiyev" style="width:100%; padding:12px; background:#1e293b; border:1px solid #475569; border-radius:10px; color:white; font-size:14px;">
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:700; color:#94a3b8; display:block; margin-bottom:4px;">TELEFON RAQAMINGIZ:</label>
+                    <input type="tel" id="courierPhoneInput" placeholder="+998 (90) 123-45-67" style="width:100%; padding:12px; background:#1e293b; border:1px solid #475569; border-radius:10px; color:white; font-size:14px;">
+                </div>
+                <button id="submitCourierAuthBtn" class="btn-primary full-width" style="margin-top:10px; padding:12px; border-radius:12px; font-weight:800; background:#3b82f6; color:white; border:none; cursor:pointer;">
+                    <i class="fa-solid fa-paper-plane"></i> Kirish / Admin Ruxsat So'rash
+                </button>
+            </div>
+        </div>
     </div>
+
+    <!-- COURIER WAITING APPROVAL MODAL -->
+    <div id="courierWaitingModal" class="modal-overlay hidden" style="z-index: 10001;">
+        <div class="modal-content center-modal" style="background:#0f172a; border:1px solid #334155; border-radius:20px; padding:28px 20px; color:white; text-align:center; max-width:360px;">
+            <div style="width:70px; height:70px; background:rgba(245,158,11,0.15); border:2px solid #f59e0b; color:#fbbf24; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 16px;">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <h3 style="font-size:18px; font-weight:800; margin-bottom:8px;">Admin Tasdiqlashi Kutilmoqda...</h3>
+            <p style="font-size:13px; color:#94a3b8; line-height:1.5; margin-bottom:16px;">
+                Sizning so'rovingiz Web PC Boshqaruv Paneliga yuborildi.<br>Admin ruxsat bergach, ilova avtomatik ochiladi!
+            </p>
+            <div style="background:#1e293b; padding:12px; border-radius:12px; border:1px dashed #475569; font-size:13px;">
+                <div><strong id="waitCourierName">Kuryer Ismi</strong></div>
+                <div style="color:#60a5fa; font-weight:700; margin-top:2px;" id="waitCourierPhone">+998 90 123 45 67</div>
+                <div style="color:#fbbf24; font-weight:700; font-size:11px; margin-top:6px;">⏳ Holat: Kutilmoqda</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- AUDIO ALERT SOUND -->
+    <div id="toast" class="toast hidden"></div>
 
     <script src="app.js"></script>
 </body>

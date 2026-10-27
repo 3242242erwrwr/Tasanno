@@ -239,8 +239,8 @@
         /* STATS GRID */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
             margin-bottom: 32px;
         }
 
@@ -248,10 +248,10 @@
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 16px;
-            padding: 20px;
+            padding: 18px;
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
             transition: transform 0.2s ease;
         }
 
@@ -260,22 +260,22 @@
         }
 
         .stat-icon {
-            width: 52px;
-            height: 52px;
-            border-radius: 14px;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
+            font-size: 20px;
         }
 
         .stat-info h3 {
-            font-size: 24px;
+            font-size: 22px;
             font-weight: 800;
         }
 
         .stat-info p {
-            font-size: 13px;
+            font-size: 12px;
             color: var(--text-muted);
             margin-top: 2px;
             font-weight: 500;
@@ -448,7 +448,7 @@
             transition: all 0.2s;
         }
 
-        /* USERS GRID */
+        /* USERS & COURIERS GRID */
         .users-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -647,6 +647,11 @@
                 <i class="fa-solid fa-boxes-packing"></i>
                 <span>Buyurtmalar</span>
             </li>
+            <li class="nav-item" onclick="switchTab('couriers')">
+                <i class="fa-solid fa-motorcycle"></i>
+                <span>Kuryerlar</span>
+                <span id="pendingCouriersBadge" style="background:#ef4444; color:white; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; margin-left:auto; display:none;">0</span>
+            </li>
             <li class="nav-item" onclick="switchTab('users')">
                 <i class="fa-solid fa-users"></i>
                 <span>Mijozlar</span>
@@ -714,6 +719,16 @@
             </div>
 
             <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
+                    <i class="fa-solid fa-motorcycle"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="statTotalCouriers">0</h3>
+                    <p>Kuryerlar Soni</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
                 <div class="stat-icon" style="background: rgba(236, 72, 153, 0.15); color: #f472b6;">
                     <i class="fa-solid fa-users"></i>
                 </div>
@@ -730,16 +745,6 @@
                 <div class="stat-info">
                     <h3 id="statTotalRevenue">0 so'm</h3>
                     <p>Jami Tushum Summasi</p>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
-                    <i class="fa-solid fa-boxes-stacked"></i>
-                </div>
-                <div class="stat-info">
-                    <h3 id="statTotalProducts">0</h3>
-                    <p>Do'kondagi Mahsulotlar</p>
                 </div>
             </div>
         </div>
@@ -760,7 +765,35 @@
             </div>
         </section>
 
-        <!-- TAB 2: USERS MANAGEMENT -->
+        <!-- TAB 2: COURIERS MANAGEMENT -->
+        <section id="tab-couriers" class="tab-section">
+            <div style="display:flex; flex-direction:column; gap:24px;">
+                <!-- PENDING APPROVAL REQUESTS -->
+                <div style="background: var(--bg-secondary); border: 1px solid #ef4444; border-radius: 16px; padding: 24px;">
+                    <h3 style="color:#ef4444; font-size:18px; font-weight:800; margin-bottom:12px;">
+                        <i class="fa-solid fa-clock"></i> ⏳ Ruxsat So'rayotgan Kuryerlar (Tasdiqlash Kutilmoqda)
+                    </h3>
+                    <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+                        Tasanno Zakazlar ilovasini o'rnatib kirgan kuryerlar ro'yxati. Ruxsat berish uchun "Tasdiqlash" tugmasini bosing:
+                    </p>
+                    <div class="users-grid" id="pendingCouriersContainer">
+                        <!-- Pending couriers rendered dynamically -->
+                    </div>
+                </div>
+
+                <!-- APPROVED ACTIVE COURIERS -->
+                <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
+                    <h3 style="color:#34d399; font-size:18px; font-weight:800; margin-bottom:12px;">
+                        <i class="fa-solid fa-motorcycle"></i> ✅ Tasdiqlangan Aktiv Kuryerlar
+                    </h3>
+                    <div class="users-grid" id="approvedCouriersContainer">
+                        <!-- Approved couriers rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: USERS MANAGEMENT -->
         <section id="tab-users" class="tab-section">
             <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -774,7 +807,7 @@
             </div>
         </section>
 
-        <!-- TAB 3: PRODUCTS MANAGEMENT -->
+        <!-- TAB 4: PRODUCTS MANAGEMENT -->
         <section id="tab-products" class="tab-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3>Do'kon Mahsulotlari Ro'yxati</h3>
@@ -788,12 +821,13 @@
             </div>
         </section>
 
-        <!-- TAB 4: SYSTEM MONITOR -->
+        <!-- TAB 5: SYSTEM MONITOR -->
         <section id="tab-system" class="tab-section">
             <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
                 <h3>Tizim Holati va Loglar</h3>
                 <p style="color: var(--text-muted); margin-top: 8px;">Render Backend API Server statusi: <strong style="color: var(--success-color);">A'LO (ONLINE)</strong></p>
                 <div style="margin-top: 20px; background: var(--bg-primary); padding: 16px; border-radius: 10px; font-family: monospace; font-size: 13px; color: #a78bfa;">
+                    <div>[API STATUS] GET /api/couriers -> OK 200</div>
                     <div>[API STATUS] GET /api/users -> OK 200</div>
                     <div>[API STATUS] GET /api/products -> OK 200</div>
                     <div>[API STATUS] GET /api/orders -> OK 200</div>
@@ -856,10 +890,12 @@
         let orders = [];
         let products = [];
         let users = [];
+        let couriers = [];
         let currentFilter = 'all';
         let isSoundEnabled = true;
         let previousOrdersHash = "";
         let previousUsersHash = "";
+        let previousCouriersHash = "";
 
         // UNLOCK AUDIO ON USER INTERACTION
         let audioCtx = null;
@@ -886,7 +922,7 @@
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+                osc.frequency.setValueAtTime(880, ctx.currentTime);
                 gain.gain.setValueAtTime(0.4, ctx.currentTime);
                 gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
                 osc.connect(gain);
@@ -930,18 +966,23 @@
                 document.getElementById('tab-orders').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Buyurtmalar Boshqaruvi";
                 document.getElementById('tabSub').textContent = "Barcha kelgan buyurtmalarni jonli ko'rish va statusini yangilash (Avto-Sinxron 1s)";
-            } else if (tab === 'users') {
+            } else if (tab === 'couriers') {
                 document.querySelectorAll('.nav-item')[1].classList.add('active');
+                document.getElementById('tab-couriers').classList.add('active');
+                document.getElementById('tabTitle').textContent = "Kuryerlar Boshqaruvi";
+                document.getElementById('tabSub').textContent = "Ilovaga ulangan kuryerlar ro'yxati va ruxsat berish";
+            } else if (tab === 'users') {
+                document.querySelectorAll('.nav-item')[2].classList.add('active');
                 document.getElementById('tab-users').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Mijozlar Boshqaruvi";
                 document.getElementById('tabSub').textContent = "Ilovaga ulangan va ro'yxatdan o'tgan foydalanuvchilar";
             } else if (tab === 'products') {
-                document.querySelectorAll('.nav-item')[2].classList.add('active');
+                document.querySelectorAll('.nav-item')[3].classList.add('active');
                 document.getElementById('tab-products').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Mahsulotlar Boshqaruvi";
                 document.getElementById('tabSub').textContent = "Tasanno do'konidagi mahsulotlarni qo'shish va o'chirish";
             } else {
-                document.querySelectorAll('.nav-item')[3].classList.add('active');
+                document.querySelectorAll('.nav-item')[4].classList.add('active');
                 document.getElementById('tab-system').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Tizim Statistika va Loglar";
                 document.getElementById('tabSub').textContent = "Render Cloud server holati";
@@ -950,7 +991,7 @@
 
         // LOAD DATA
         async function loadAllData(showMsg = false) {
-            await Promise.all([loadOrders(), loadProducts(), loadUsers()]);
+            await Promise.all([loadOrders(), loadProducts(), loadUsers(), loadCouriers()]);
             if (showMsg) showToast("Barcha ma'lumotlar yangilandi!");
         }
 
@@ -1006,6 +1047,43 @@
                     }
                 }
             } catch(e) { console.error("Users fetch error", e); }
+        }
+
+        async function loadCouriers() {
+            try {
+                const res = await fetch(`${API_BASE}/api/couriers`, { cache: 'no-cache' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data)) {
+                        const currentHash = JSON.stringify(data);
+                        if (currentHash !== previousCouriersHash) {
+                            const pendingCount = data.filter(c => c.status === 'Pending').length;
+                            if (previousCouriersHash !== "" && pendingCount > couriers.filter(c => c.status === 'Pending').length) {
+                                playChime();
+                                showToast("🛵 Yangi kuryer ruxsat so'ramoqda!");
+                            }
+                            previousCouriersHash = currentHash;
+                            couriers = data;
+                            renderCouriers();
+                            updateStats();
+                        }
+                    }
+                }
+            } catch(e) { console.error("Couriers fetch error", e); }
+        }
+
+        async function approveCourier(courierId, newStatus) {
+            try {
+                const res = await fetch(`${API_BASE}/api/couriers/${courierId}/approve`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (res.ok) {
+                    showToast(newStatus === 'Approved' ? "✅ Kuryerga ruxsat berildi!" : "❌ Kuryer rad etildi");
+                    loadCouriers();
+                }
+            } catch(e){ showToast("Xatolik yuz berdi"); }
         }
 
         // UPDATE STATUS
@@ -1089,6 +1167,7 @@
                         <div>
                             <div style="font-size: 11px; color: var(--text-muted);">${ord.paymentType || "Naqd to'lov"}</div>
                             <div class="total-amount">${formatPrice(ord.total || 0)} so'm</div>
+                            ${ord.courierName ? `<div style="font-size:12px; color:#60a5fa; font-weight:700; margin-top:4px;"><i class="fa-solid fa-motorcycle"></i> Kuryer: ${ord.courierName} (${ord.courierPhone || ''})</div>` : ''}
                         </div>
 
                         <div class="action-btns">
@@ -1102,6 +1181,87 @@
 
                 container.appendChild(card);
             });
+        }
+
+        // RENDER COURIERS
+        function renderCouriers() {
+            const pendingContainer = document.getElementById('pendingCouriersContainer');
+            const approvedContainer = document.getElementById('approvedCouriersContainer');
+            const badge = document.getElementById('pendingCouriersBadge');
+
+            if (!pendingContainer || !approvedContainer) return;
+
+            pendingContainer.innerHTML = '';
+            approvedContainer.innerHTML = '';
+
+            const pendingCouriers = couriers.filter(c => c.status === 'Pending');
+            const approvedCouriers = couriers.filter(c => c.status === 'Approved');
+
+            if (badge) {
+                if (pendingCouriers.length > 0) {
+                    badge.textContent = pendingCouriers.length;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+
+            if (pendingCouriers.length === 0) {
+                pendingContainer.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: var(--text-muted); font-size:13px;">
+                    <i class="fa-solid fa-circle-check" style="color:#10b981; margin-right:6px;"></i> Hozircha kutilayotgan ruxsat so'rovlari yo'q
+                </div>`;
+            } else {
+                pendingCouriers.forEach(c => {
+                    const cleanPhone = (c.phone || '').replace(/\D/g, '');
+                    const card = document.createElement('div');
+                    card.className = 'user-card';
+                    card.style.border = '2px solid #f59e0b';
+                    card.innerHTML = `
+                        <div style="width:50px; height:50px; border-radius:50%; background:rgba(245,158,11,0.2); color:#fbbf24; display:flex; align-items:center; justify-content:center; font-size:22px;">
+                            <i class="fa-solid fa-motorcycle"></i>
+                        </div>
+                        <div class="user-details">
+                            <div class="user-name" style="font-size:16px;">${c.name}</div>
+                            <div class="user-phone"><i class="fa-solid fa-phone"></i> ${c.phone}</div>
+                            <div class="user-meta" style="color:#fbbf24; font-weight:700;">⏳ So'rov kelgan: ${c.registeredAt || 'Hozir'}</div>
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <button class="btn btn-primary" style="padding:6px 12px; font-size:12px; background:#10b981;" onclick="approveCourier('${c.id}', 'Approved')">
+                                <i class="fa-solid fa-check"></i> Tasdiqlash
+                            </button>
+                            <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="approveCourier('${c.id}', 'Rejected')">
+                                <i class="fa-solid fa-xmark"></i> Rad etish
+                            </button>
+                        </div>
+                    `;
+                    pendingContainer.appendChild(card);
+                });
+            }
+
+            if (approvedCouriers.length === 0) {
+                approvedContainer.innerHTML = `<div style="grid-column: 1/-1; text-align: center; padding: 20px; color: var(--text-muted); font-size:13px;">
+                    Hozircha tasdiqlangan aktiv kuryerlar yo'q
+                </div>`;
+            } else {
+                approvedCouriers.forEach(c => {
+                    const courierOrdersCount = orders.filter(o => o.courierPhone === c.phone || o.courierName === c.name).length;
+                    const cleanPhone = (c.phone || '').replace(/\D/g, '');
+                    const card = document.createElement('div');
+                    card.className = 'user-card';
+                    card.innerHTML = `
+                        <div style="width:50px; height:50px; border-radius:50%; background:rgba(16,185,129,0.15); color:#34d399; display:flex; align-items:center; justify-content:center; font-size:22px;">
+                            <i class="fa-solid fa-user-check"></i>
+                        </div>
+                        <div class="user-details">
+                            <div class="user-name">${c.name} <span style="background:rgba(16,185,129,0.2); color:#34d399; font-size:10px; padding:2px 8px; border-radius:10px;">🟢 Online</span></div>
+                            <div class="user-phone"><i class="fa-solid fa-phone"></i> ${c.phone}</div>
+                            <div class="user-meta"><strong>Qabul qilgan zakazlari:</strong> ${courierOrdersCount} ta zakaz olgan</div>
+                        </div>
+                        ${cleanPhone ? `<a href="tel:+${cleanPhone}" class="phone-link"><i class="fa-solid fa-phone"></i> Qo'ng'iroq</a>` : ''}
+                    `;
+                    approvedContainer.appendChild(card);
+                });
+            }
         }
 
         // RENDER USERS
@@ -1217,6 +1377,7 @@
             document.getElementById('statNewOrders').textContent = orders.filter(o => o.status === 'Yangi').length;
             document.getElementById('statTotalUsers').textContent = users.length;
             document.getElementById('statTotalProducts').textContent = products.length;
+            document.getElementById('statTotalCouriers').textContent = couriers.filter(c => c.status === 'Approved').length;
 
             const totalSum = orders
                 .filter(o => o.status !== 'Bekor qilindi')
@@ -1242,6 +1403,7 @@
         setInterval(() => {
             loadOrders();
             loadUsers();
+            loadCouriers();
         }, 1000);
 
         setInterval(() => {

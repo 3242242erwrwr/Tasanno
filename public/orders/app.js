@@ -1,11 +1,17 @@
 // TASANNO ZAKAZLAR - REAL-TIME ORDER RECEIVER
 const API_BASE_URL = window.location.origin.includes('http') ? window.location.origin : "https://tasanno-im7q.onrender.com";
-const SYNC_CHANNEL = "tasanno_orders_channel_998";
-const SYNC_URL = `https://ntfy.sh/${SYNC_CHANNEL}`;
 
 let orders = [];
 let currentFilter = 'all';
 let isSoundEnabled = true;
+
+let currentCourier = null;
+try {
+    const savedC = localStorage.getItem('currentCourier');
+    if (savedC) currentCourier = JSON.parse(savedC);
+} catch (e) { currentCourier = null; }
+
+let courierPollInterval = null;
 
 let deletedOrderIds = new Set();
 try {
@@ -20,7 +26,7 @@ try {
 try {
     const saved = localStorage.getItem('tasanno_orders');
     if (saved) {
-        orders = JSON.parse(saved).filter(o => !deletedOrderIds.has(String(o.id)) && o.status !== 'Bekor qilindi');
+        orders = JSON.parse(saved).filter(o => !deletedOrderIds.has(String(o.id)));
     }
 } catch (e) {
     orders = [];
@@ -64,12 +70,103 @@ function initApp() {
             splashScreen.style.display = 'none';
         }
         if (appContainer) appContainer.classList.remove('hidden');
+
+        checkCourierAuth();
     }, 600);
 
     renderOrders();
     updateStats();
     startRealtimeSync();
     setupListeners();
+}
+
+function checkCourierAuth() {
+    const courierAuthModal = document.getElementById('courierAuthModal');
+    const courierWaitingModal = document.getElementById('courierWaitingModal');
+
+    if (!currentCourier) {
+        if (courierAuthModal) courierAuthModal.classList.remove('hidden');
+        return false;
+    }
+
+    if (currentCourier.status !== 'Approved') {
+        if (courierAuthModal) courierAuthModal.classList.add('hidden');
+        if (courierWaitingModal) {
+            const nameElem = document.getElementById('waitCourierName');
+            const phoneElem = document.getElementById('waitCourierPhone');
+            if (nameElem) nameElem.textContent = currentCourier.name;
+            if (phoneElem) phoneElem.textContent = currentCourier.phone;
+            courierWaitingModal.classList.remove('hidden');
+        }
+        startCourierStatusPolling();
+        return false;
+    }
+
+    if (courierAuthModal) courierAuthModal.classList.add('hidden');
+    if (courierWaitingModal) courierWaitingModal.classList.add('hidden');
+    if (courierPollInterval) clearInterval(courierPollInterval);
+    return true;
+}
+
+function startCourierStatusPolling() {
+    if (courierPollInterval) clearInterval(courierPollInterval);
+    courierPollInterval = setInterval(async () => {
+        if (!currentCourier || !currentCourier.id) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/couriers/${currentCourier.id}/status`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.status === 'Approved') {
+                    currentCourier.status = 'Approved';
+                    localStorage.setItem('currentCourier', JSON.stringify(currentCourier));
+                    clearInterval(courierPollInterval);
+                    document.getElementById('courierWaitingModal')?.classList.add('hidden');
+                    showToast("✅ Admin ruxsat berdi! Xush kelibsiz!");
+                    renderOrders();
+                } else if (data.status === 'Rejected') {
+                    alert("Admin sizning ruxsat so'rovingizni rad etdi.");
+                    localStorage.removeItem('currentCourier');
+                    currentCourier = null;
+                    clearInterval(courierPollInterval);
+                    document.getElementById('courierWaitingModal')?.classList.add('hidden');
+                    document.getElementById('courierAuthModal')?.classList.remove('hidden');
+                }
+            }
+        } catch(e){}
+    }, 1500);
+}
+
+async function handleCourierSubmit() {
+    const nameInput = document.getElementById('courierNameInput');
+    const phoneInput = document.getElementById('courierPhoneInput');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+
+    if (!name || !phone) {
+        showToast("Iltimos, Ismingiz va Telefoningizni kiriting!");
+        return;
+    }
+
+    const courierId = '#COUR-' + Math.floor(100000 + Math.random() * 900000);
+    currentCourier = {
+        id: courierId,
+        name: name,
+        phone: phone,
+        status: 'Pending'
+    };
+
+    localStorage.setItem('currentCourier', JSON.stringify(currentCourier));
+
+    try {
+        await fetch(`${API_BASE_URL}/api/couriers`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentCourier)
+        });
+    } catch(e){}
+
+    checkCourierAuth();
 }
 
 function setupListeners() {
@@ -97,9 +194,13 @@ function setupListeners() {
     });
 
     refreshBtn?.addEventListener('click', () => {
-        pollLatestOrders(true);
-        pollRenderBackendOrders(true);
+        syncOrdersFromBackend(true);
     });
+
+    const submitAuthBtn = document.getElementById('submitCourierAuthBtn');
+    if (submitAuthBtn) {
+        submitAuthBtn.addEventListener('click', handleCourierSubmit);
+    }
 }
 
 let previousOrdersHash = "";
@@ -140,30 +241,19 @@ function startRealtimeSync() {
     }, 2000);
 }
 
-function processIncomingOrder(orderObj) {
-    if (!orderObj || !orderObj.id) return false;
-    if (deletedOrderIds.has(String(orderObj.id))) return false;
-
-    const exists = orders.some(o => String(o.id) === String(orderObj.id));
-    if (!exists) {
-        orderObj.status = orderObj.status || 'Yangi';
-        orderObj.isNewHighlight = true;
-        orders.unshift(orderObj);
-        saveOrders();
-        renderOrders();
-        updateStats();
-        playOrderChime();
-        showToast(`🔔 Yangi buyurtma keldi: #${orderObj.id}`);
-        return true;
-    }
-    return false;
-}
-
 function updateOrderStatus(orderId, newStatus) {
     const ord = orders.find(o => String(o.id) === String(orderId));
     if (!ord) return;
 
+    if (!currentCourier || currentCourier.status !== 'Approved') {
+        showToast("Ruxsatingiz tasdiqlanmagan!");
+        checkCourierAuth();
+        return;
+    }
+
     ord.status = newStatus;
+    ord.courierName = currentCourier.name;
+    ord.courierPhone = currentCourier.phone;
     delete ord.isNewHighlight;
     saveOrders();
     renderOrders();
@@ -172,7 +262,11 @@ function updateOrderStatus(orderId, newStatus) {
     fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus })
+        body: JSON.stringify({
+            status: newStatus,
+            courierName: currentCourier.name,
+            courierPhone: currentCourier.phone
+        })
     }).catch(e => {});
 
     showToast(`Buyurtma #${orderId} holati: ${newStatus}`);
@@ -199,7 +293,7 @@ function renderOrders() {
         ordersContainer.innerHTML = `
             <div class="empty-state">
                 <i class="fa-solid fa-box-open empty-icon"></i>
-                <p>Hozircha buyurtmalar yo'q</p>
+                <p>Hozircha ${currentFilter === 'all' ? '' : currentFilter.toLowerCase()} buyurtmalar yo'q</p>
             </div>
         `;
         return;
@@ -249,6 +343,7 @@ function renderOrders() {
                 <span class="payment-plan-tag">${ord.paymentType || "Naqd to'lov"}</span>
                 <span class="order-total-amount">${formatPrice(ord.total || 0)} so'm</span>
             </div>
+            ${ord.courierName ? `<div style="font-size:12px;color:#60a5fa;font-weight:700;margin-top:4px;"><i class="fa-solid fa-motorcycle"></i> Kuryer: ${ord.courierName} (${ord.courierPhone || ''})</div>` : ''}
 
             <div class="order-actions">
                 ${ord.status === 'Yangi' ? `
@@ -281,6 +376,12 @@ function renderOrders() {
                 ${ord.status === 'Yetkazildi' ? `
                     <div style="font-size:12px;color:var(--success-color);font-weight:700;width:100%;text-align:center;padding:4px;">
                         <i class="fa-solid fa-circle-check"></i> Buyurtma muvaffaqiyatli yetkazilgan
+                    </div>
+                ` : ''}
+
+                ${ord.status === 'Bekor qilindi' ? `
+                    <div style="font-size:12px;color:var(--danger-color);font-weight:700;width:100%;text-align:center;padding:4px;">
+                        <i class="fa-solid fa-circle-xmark"></i> Buyurtma bekor qilingan (Qabul qilinmadi)
                     </div>
                 ` : ''}
             </div>
