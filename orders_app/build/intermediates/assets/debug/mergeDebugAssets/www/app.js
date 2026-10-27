@@ -208,6 +208,43 @@ function setupListeners() {
     if (submitAuthBtn) {
         submitAuthBtn.addEventListener('click', handleCourierSubmit);
     }
+
+    const adminPinUnlockBtn = document.getElementById('adminPinUnlockBtn');
+    if (adminPinUnlockBtn) {
+        adminPinUnlockBtn.addEventListener('click', () => {
+            const pin = prompt("Admin PIN-kodini kiriting (Masalan: 7777):");
+            if (pin === '7777') {
+                if (currentCourier) {
+                    currentCourier.status = 'Approved';
+                    localStorage.setItem('currentCourier', JSON.stringify(currentCourier));
+                    fetch(`${API_BASE_URL}/api/couriers`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(currentCourier)
+                    }).catch(e => {});
+                    const encodedId = encodeURIComponent(currentCourier.id || currentCourier.phone);
+                    fetch(`${API_BASE_URL}/api/couriers/${encodedId}/approve`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'Approved' })
+                    }).catch(e => {});
+                } else {
+                    currentCourier = {
+                        id: 'COUR-7777',
+                        name: 'Admin Kuryer',
+                        phone: '+998 90 000 00 00',
+                        status: 'Approved'
+                    };
+                    localStorage.setItem('currentCourier', JSON.stringify(currentCourier));
+                }
+                showToast("✅ Admin PIN orqali tasdiqlandi!");
+                checkCourierAuth();
+                renderOrders();
+            } else if (pin) {
+                alert("Xato PIN-kod!");
+            }
+        });
+    }
 }
 
 let previousOrdersHash = "";
