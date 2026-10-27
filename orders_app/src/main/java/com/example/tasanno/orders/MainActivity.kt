@@ -5,7 +5,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
@@ -15,9 +14,6 @@ import android.app.Activity
 class MainActivity : Activity() {
 
     private lateinit var mWebView: WebView
-    private val cloudUrl = "https://tasanno-im7q.onrender.com/orders/"
-    private val localUrl = "file:///android_asset/www/index.html"
-    private var hasErrorOccurred = false
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -40,17 +36,6 @@ class MainActivity : Activity() {
                     }
                     return false
                 }
-
-                override fun onReceivedError(
-                    view: WebView?,
-                    request: WebResourceRequest?,
-                    error: WebResourceError?
-                ) {
-                    if (request?.isForMainFrame == true && !hasErrorOccurred) {
-                        hasErrorOccurred = true
-                        view?.loadUrl(localUrl)
-                    }
-                }
             }
             webChromeClient = WebChromeClient()
 
@@ -66,7 +51,7 @@ class MainActivity : Activity() {
                 loadWithOverviewMode = true
             }
 
-            loadUrl(cloudUrl)
+            loadUrl("file:///android_asset/www/index.html")
         }
 
         setContentView(mWebView)
