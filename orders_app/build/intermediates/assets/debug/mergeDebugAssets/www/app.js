@@ -90,9 +90,11 @@ function initApp() {
 function checkCourierAuth() {
     const courierAuthModal = document.getElementById('courierAuthModal');
     const courierWaitingModal = document.getElementById('courierWaitingModal');
+    const appContainer = document.getElementById('appContainer');
 
     if (!currentCourier) {
         if (courierAuthModal) courierAuthModal.classList.remove('hidden');
+        if (courierWaitingModal) courierWaitingModal.classList.add('hidden');
         return false;
     }
 
@@ -109,38 +111,50 @@ function checkCourierAuth() {
         return false;
     }
 
+    // Fully Approved! Hide all auth modals
     if (courierAuthModal) courierAuthModal.classList.add('hidden');
     if (courierWaitingModal) courierWaitingModal.classList.add('hidden');
-    if (courierPollInterval) clearInterval(courierPollInterval);
+    if (appContainer) appContainer.classList.remove('hidden');
+    if (courierPollInterval) {
+        clearInterval(courierPollInterval);
+        courierPollInterval = null;
+    }
     return true;
 }
 
 function startCourierStatusPolling() {
     if (courierPollInterval) clearInterval(courierPollInterval);
     courierPollInterval = setInterval(async () => {
-        if (!currentCourier || !currentCourier.id) return;
+        if (!currentCourier) return;
         try {
-            const res = await fetch(`${API_BASE_URL}/api/couriers/${currentCourier.id}/status`);
+            const cleanPhone = currentCourier.phone ? currentCourier.phone.replace(/\D/g, '') : '';
+            const searchId = cleanPhone || currentCourier.id;
+            const res = await fetch(`${API_BASE_URL}/api/couriers/${encodeURIComponent(searchId)}/status`);
             if (res.ok) {
                 const data = await res.json();
                 if (data.status === 'Approved') {
                     currentCourier.status = 'Approved';
                     localStorage.setItem('currentCourier', JSON.stringify(currentCourier));
-                    clearInterval(courierPollInterval);
-                    document.getElementById('courierWaitingModal')?.classList.add('hidden');
+                    if (courierPollInterval) {
+                        clearInterval(courierPollInterval);
+                        courierPollInterval = null;
+                    }
+                    checkCourierAuth();
                     showToast("✅ Admin ruxsat berdi! Xush kelibsiz!");
                     renderOrders();
                 } else if (data.status === 'Rejected') {
                     alert("Admin sizning ruxsat so'rovingizni rad etdi.");
                     localStorage.removeItem('currentCourier');
                     currentCourier = null;
-                    clearInterval(courierPollInterval);
-                    document.getElementById('courierWaitingModal')?.classList.add('hidden');
-                    document.getElementById('courierAuthModal')?.classList.remove('hidden');
+                    if (courierPollInterval) {
+                        clearInterval(courierPollInterval);
+                        courierPollInterval = null;
+                    }
+                    checkCourierAuth();
                 }
             }
         } catch(e){}
-    }, 1500);
+    }, 1000);
 }
 
 async function handleCourierSubmit() {
