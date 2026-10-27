@@ -22,7 +22,54 @@
         </div>
     </div>
 
-    <!-- MAIN APP CONTAINER -->
+    <!-- 2. FULL-SCREEN SOLID COURIER AUTHENTICATION PAGE (No background app) -->
+    <div id="courierAuthModal" class="full-page-auth hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0f172a; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 24px;">
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:24px; padding:32px 24px; color:white; width:100%; max-width:400px; box-shadow:0 20px 50px rgba(0,0,0,0.8);">
+            <div style="text-align: center; margin-bottom: 24px;">
+                <div style="width:72px; height:72px; background:rgba(59,130,246,0.15); color:#60a5fa; border:2px solid #3b82f6; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:34px; margin:0 auto 16px; box-shadow:0 0 25px rgba(59,130,246,0.3);">
+                    <i class="fa-solid fa-motorcycle"></i>
+                </div>
+                <h2 style="font-size:22px; font-weight:800; letter-spacing:-0.5px;">Kuryer Tizimiga Kirish</h2>
+                <p style="font-size:13px; color:#94a3b8; margin-top:6px; line-height:1.4;">Buyurtmalarni qabul qilish uchun Ism va Telefon raqamingizni kiriting</p>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:16px;">
+                <div>
+                    <label style="font-size:12px; font-weight:700; color:#94a3b8; display:block; margin-bottom:6px; text-transform:uppercase;">Kuryer Ismi:</label>
+                    <input type="text" id="courierNameInput" placeholder="Masalan: Ali Valiyev" style="width:100%; padding:14px; background:#0f172a; border:1px solid #475569; border-radius:12px; color:white; font-size:15px; outline:none;">
+                </div>
+                <div>
+                    <label style="font-size:12px; font-weight:700; color:#94a3b8; display:block; margin-bottom:6px; text-transform:uppercase;">Telefon Raqamingiz:</label>
+                    <input type="tel" id="courierPhoneInput" placeholder="+998 (90) 123-45-67" style="width:100%; padding:14px; background:#0f172a; border:1px solid #475569; border-radius:12px; color:white; font-size:15px; outline:none;">
+                </div>
+                <button id="submitCourierAuthBtn" class="btn-primary full-width" style="margin-top:10px; padding:15px; border-radius:14px; font-size:15px; font-weight:800; background:linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color:white; border:none; cursor:pointer; box-shadow:0 4px 20px rgba(59,130,246,0.4);">
+                    <i class="fa-solid fa-paper-plane"></i> Kirish / Admin Ruxsat So'rash
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. FULL-SCREEN SOLID WAITING APPROVAL PAGE -->
+    <div id="courierWaitingModal" class="full-page-auth hidden" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0f172a; z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 24px;">
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:24px; padding:32px 24px; color:white; text-align:center; width:100%; max-width:380px; box-shadow:0 20px 50px rgba(0,0,0,0.8);">
+            <div style="width:76px; height:76px; background:rgba(245,158,11,0.15); border:2px solid #f59e0b; color:#fbbf24; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:36px; margin:0 auto 20px; box-shadow:0 0 25px rgba(245,158,11,0.3);">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+            <h3 style="font-size:20px; font-weight:800; margin-bottom:8px;">Admin Tasdiqlashi Kutilmoqda...</h3>
+            <p style="font-size:13px; color:#94a3b8; line-height:1.5; margin-bottom:20px;">
+                Sizning so'rovingiz Web PC Boshqaruv Paneliga yuborildi.<br>Admin ruxsat bergach, ilova avtomatik ochiladi!
+            </p>
+            <div style="background:#0f172a; padding:16px; border-radius:14px; border:1px dashed #475569; font-size:14px; margin-bottom:20px;">
+                <div><strong id="waitCourierName" style="font-size:16px;">Kuryer Ismi</strong></div>
+                <div style="color:#60a5fa; font-weight:700; margin-top:4px;" id="waitCourierPhone">+998 90 123 45 67</div>
+                <div style="color:#fbbf24; font-weight:700; font-size:12px; margin-top:8px;">⏳ Holat: Kutilmoqda</div>
+            </div>
+            <button id="adminPinUnlockBtn" style="width:100%; padding:12px; border-radius:12px; background:rgba(59,130,246,0.15); border:1px solid #3b82f6; color:#60a5fa; font-weight:700; font-size:13px; cursor:pointer;">
+                <i class="fa-solid fa-key"></i> Admin PIN bilan ochish (7777)
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER (Hidden until approved) -->
     <div id="appContainer" class="app-container hidden">
 
         <!-- HEADER -->
@@ -94,53 +141,6 @@
                 <!-- Orders will be rendered here dynamically -->
             </div>
         </main>
-    </div>
-
-    <!-- COURIER AUTHENTICATION MODAL -->
-    <div id="courierAuthModal" class="modal-overlay hidden" style="z-index: 10000;">
-        <div class="modal-content center-modal auth-modal-content" style="background:#0f172a; border:1px solid #334155; border-radius:20px; padding:24px; color:white;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div style="width:60px; height:60px; background:rgba(59,130,246,0.15); color:#60a5fa; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:28px; margin:0 auto 12px;">
-                    <i class="fa-solid fa-motorcycle"></i>
-                </div>
-                <h3 style="font-size:20px; font-weight:800;">Kuryer Tizimiga Kirish</h3>
-                <p style="font-size:12px; color:#94a3b8; margin-top:4px;">Buyurtmalarni qabul qilish uchun Ism va Telefon raqamingizni kiriting</p>
-            </div>
-            <div style="display:flex; flex-direction:column; gap:14px;">
-                <div>
-                    <label style="font-size:12px; font-weight:700; color:#94a3b8; display:block; margin-bottom:4px;">KURYER ISMI:</label>
-                    <input type="text" id="courierNameInput" placeholder="Masalan: Ali Valiyev" style="width:100%; padding:12px; background:#1e293b; border:1px solid #475569; border-radius:10px; color:white; font-size:14px;">
-                </div>
-                <div>
-                    <label style="font-size:12px; font-weight:700; color:#94a3b8; display:block; margin-bottom:4px;">TELEFON RAQAMINGIZ:</label>
-                    <input type="tel" id="courierPhoneInput" placeholder="+998 (90) 123-45-67" style="width:100%; padding:12px; background:#1e293b; border:1px solid #475569; border-radius:10px; color:white; font-size:14px;">
-                </div>
-                <button id="submitCourierAuthBtn" class="btn-primary full-width" style="margin-top:10px; padding:12px; border-radius:12px; font-weight:800; background:#3b82f6; color:white; border:none; cursor:pointer;">
-                    <i class="fa-solid fa-paper-plane"></i> Kirish / Admin Ruxsat So'rash
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- COURIER WAITING APPROVAL MODAL -->
-    <div id="courierWaitingModal" class="modal-overlay hidden" style="z-index: 10001;">
-        <div class="modal-content center-modal" style="background:#0f172a; border:1px solid #334155; border-radius:20px; padding:28px 20px; color:white; text-align:center; max-width:360px;">
-            <div style="width:70px; height:70px; background:rgba(245,158,11,0.15); border:2px solid #f59e0b; color:#fbbf24; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 16px;">
-                <i class="fa-solid fa-clock"></i>
-            </div>
-            <h3 style="font-size:18px; font-weight:800; margin-bottom:8px;">Admin Tasdiqlashi Kutilmoqda...</h3>
-            <p style="font-size:13px; color:#94a3b8; line-height:1.5; margin-bottom:16px;">
-                Sizning so'rovingiz Web PC Boshqaruv Paneliga yuborildi.<br>Admin ruxsat bergach, ilova avtomatik ochiladi!
-            </p>
-            <div style="background:#1e293b; padding:12px; border-radius:12px; border:1px dashed #475569; font-size:13px; margin-bottom:16px;">
-                <div><strong id="waitCourierName">Kuryer Ismi</strong></div>
-                <div style="color:#60a5fa; font-weight:700; margin-top:2px;" id="waitCourierPhone">+998 90 123 45 67</div>
-                <div style="color:#fbbf24; font-weight:700; font-size:11px; margin-top:6px;">⏳ Holat: Kutilmoqda</div>
-            </div>
-            <button id="adminPinUnlockBtn" style="width:100%; padding:10px; border-radius:12px; background:rgba(59,130,246,0.15); border:1px solid #3b82f6; color:#60a5fa; font-weight:700; font-size:13px; cursor:pointer;">
-                <i class="fa-solid fa-key"></i> Admin PIN bilan ochish (7777)
-            </button>
-        </div>
     </div>
 
     <!-- AUDIO ALERT SOUND -->
