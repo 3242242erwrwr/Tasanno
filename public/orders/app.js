@@ -1,9 +1,11 @@
-// TASANNO ZAKAZLAR - REAL-TIME ORDER RECEIVER
+// TASANNO ZAKAZLAR - REAL-TIME ORDER RECEIVER & CHAT
 const API_BASE_URL = window.location.origin.includes('http') ? window.location.origin : "https://tasanno-im7q.onrender.com";
 
 let orders = [];
+let chatMessages = [];
 let currentFilter = 'all';
 let isSoundEnabled = true;
+let isChatModalOpen = false;
 
 let currentCourier = null;
 try {
@@ -69,7 +71,6 @@ function initApp() {
             splashScreen.style.opacity = '0';
             splashScreen.style.display = 'none';
         }
-        if (appContainer) appContainer.classList.remove('hidden');
 
         checkCourierAuth();
     }, 600);
@@ -161,7 +162,7 @@ async function handleCourierSubmit() {
         return;
     }
 
-    const courierId = '#COUR-' + Math.floor(100000 + Math.random() * 900000);
+    const courierId = 'COUR-' + Math.floor(100000 + Math.random() * 900000);
     currentCourier = {
         id: courierId,
         name: name,
@@ -208,6 +209,7 @@ function setupListeners() {
 
     refreshBtn?.addEventListener('click', () => {
         syncOrdersFromBackend(true);
+        syncChatMessages();
     });
 
     const submitAuthBtn = document.getElementById('submitCourierAuthBtn');
@@ -256,6 +258,13 @@ function setupListeners() {
     if (logoutCourierBtn) {
         logoutCourierBtn.addEventListener('click', handleCourierLogout);
     }
+
+    document.getElementById('openChatBtn')?.addEventListener('click', openChatModal);
+    document.getElementById('closeChatModalBtn')?.addEventListener('click', closeChatModal);
+    document.getElementById('sendChatBtn')?.addEventListener('click', sendChatMessage);
+    document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendChatMessage();
+    });
 }
 
 function handleCourierLogout() {
@@ -271,6 +280,125 @@ function handleCourierLogout() {
         if (phoneIn) phoneIn.value = '';
         showToast("Kuryer profildan chiqildi");
     }
+}
+
+function openChatModal() {
+    isChatModalOpen = true;
+    const modal = document.getElementById('courierChatModal');
+    const badge = document.getElementById('unreadChatBadge');
+    if (modal) modal.classList.remove('hidden');
+    if (badge) badge.style.display = 'none';
+    syncChatMessages();
+}
+
+function closeChatModal() {
+    isChatModalOpen = false;
+    const modal = document.getElementById('courierChatModal');
+    if (modal) modal.classList.add('hidden');
+}
+
+async function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const text = input ? input.value.trim() : '';
+    if (!text) return;
+
+    if (!currentCourier) {
+        showToast("Avval kuryer profili kiritilmagan!");
+        return;
+    }
+
+    input.value = '';
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/messages`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sender: 'Courier',
+                courierName: currentCourier.name,
+                courierPhone: currentCourier.phone,
+                text: text
+            })
+        });
+
+        if (res.ok) {
+            syncChatMessages();
+        }
+    } catch (e) {}
+}
+
+let previousMessagesHash = "";
+
+async function syncChatMessages() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/messages`, { cache: 'no-cache' });
+        if (!res.ok) return;
+        const allMsgs = await res.json();
+        if (!Array.isArray(allMsgs)) return;
+
+        const cPhone = currentCourier ? (currentCourier.phone || '').replace(/\D/g, '') : '';
+        const myMsgs = allMsgs.filter(m => {
+            if (!m.courierPhone) return true;
+            return m.courierPhone.replace(/\D/g, '') === cPhone || m.courierName === (currentCourier ? currentCourier.name : '');
+        });
+
+        const currentHash = JSON.stringify(myMsgs);
+        if (currentHash !== previousMessagesHash) {
+            if (previousMessagesHash !== "" && myMsgs.length > chatMessages.length) {
+                const lastMsg = myMsgs[myMsgs.length - 1];
+                if (lastMsg.sender === 'Admin') {
+                    playOrderChime();
+                    showToast("💬 Admindan yangi xabar!");
+                    if (!isChatModalOpen) {
+                        const badge = document.getElementById('unreadChatBadge');
+                        if (badge) {
+                            badge.textContent = '!';
+                            badge.style.display = 'flex';
+                        }
+                    }
+                }
+            }
+            previousMessagesHash = currentHash;
+            chatMessages = myMsgs;
+            renderChatMessages();
+        }
+    } catch (e) {}
+}
+
+function renderChatMessages() {
+    const box = document.getElementById('chatMessagesBox');
+    if (!box) return;
+    box.innerHTML = '';
+
+    if (chatMessages.length === 0) {
+        box.innerHTML = `
+            <div style="text-align:center; padding:40px 20px; color:#94a3b8; font-size:13px;">
+                <i class="fa-solid fa-comments" style="font-size:36px; margin-bottom:10px; color:#3b82f6;"></i>
+                <p>Adminga biror savol yoki xabaringiz bo'lsa, bu yerga yozing!</p>
+            </div>
+        `;
+        return;
+    }
+
+    chatMessages.forEach(m => {
+        const isMe = m.sender === 'Courier';
+        const msgDiv = document.createElement('div');
+        msgDiv.style.display = 'flex';
+        msgDiv.style.flexDirection = 'column';
+        msgDiv.style.alignItems = isMe ? 'flex-end' : 'flex-start';
+
+        msgDiv.innerHTML = `
+            <div style="font-size:10px; color:#94a3b8; margin-bottom:2px; font-weight:600;">
+                ${isMe ? 'Siz' : '🛡 Bosh Admin'} • ${m.timestamp || ''}
+            </div>
+            <div style="max-width:80%; padding:10px 14px; border-radius:${isMe ? '16px 16px 2px 16px' : '16px 16px 16px 2px'}; background:${isMe ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#1e293b'}; color:white; font-size:14px; line-height:1.4; border:1px solid ${isMe ? '#3b82f6' : '#334155'}; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+                ${m.text}
+            </div>
+        `;
+        box.appendChild(msgDiv);
+    });
+
+    box.scrollTop = box.scrollHeight;
 }
 
 let previousOrdersHash = "";
@@ -306,9 +434,11 @@ async function syncOrdersFromBackend(showToastMsg = false) {
 
 function startRealtimeSync() {
     syncOrdersFromBackend(false);
+    syncChatMessages();
     setInterval(() => {
         syncOrdersFromBackend(false);
-    }, 2000);
+        syncChatMessages();
+    }, 1000);
 }
 
 function updateOrderStatus(orderId, newStatus) {

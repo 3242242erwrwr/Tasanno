@@ -553,6 +553,74 @@
             width: fit-content;
         }
 
+        /* CHAT LAYOUT */
+        .chat-container-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            height: 650px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .chat-threads-sidebar {
+            background: var(--bg-primary);
+            border-right: 1px solid var(--border-color);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .thread-item {
+            padding: 12px;
+            border-radius: 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .thread-item.active, .thread-item:hover {
+            border-color: var(--accent-color);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .chat-main-area {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .chat-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-messages-scroll {
+            flex: 1;
+            padding: 24px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--bg-secondary);
+        }
+
+        .chat-input-bar {
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            display: flex;
+            gap: 12px;
+        }
+
         /* MODAL */
         .modal-overlay {
             position: fixed;
@@ -652,6 +720,11 @@
                 <span>Kuryerlar</span>
                 <span id="pendingCouriersBadge" style="background:#ef4444; color:white; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; margin-left:auto; display:none;">0</span>
             </li>
+            <li class="nav-item" onclick="switchTab('chat')">
+                <i class="fa-solid fa-comments"></i>
+                <span>Kuryerlar Chat</span>
+                <span id="unreadAdminChatBadge" style="background:#ef4444; color:white; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; margin-left:auto; display:none;">0</span>
+            </li>
             <li class="nav-item" onclick="switchTab('users')">
                 <i class="fa-solid fa-users"></i>
                 <span>Mijozlar</span>
@@ -719,22 +792,22 @@
             </div>
 
             <div class="stat-card">
+                <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
+                    <i class="fa-solid fa-comments"></i>
+                </div>
+                <div class="stat-info">
+                    <h3 id="statTotalMessages">0</h3>
+                    <p>Chat Xabarlari Soni</p>
+                </div>
+            </div>
+
+            <div class="stat-card">
                 <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
                     <i class="fa-solid fa-motorcycle"></i>
                 </div>
                 <div class="stat-info">
                     <h3 id="statTotalCouriers">0</h3>
                     <p>Kuryerlar Soni</p>
-                </div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon" style="background: rgba(236, 72, 153, 0.15); color: #f472b6;">
-                    <i class="fa-solid fa-users"></i>
-                </div>
-                <div class="stat-info">
-                    <h3 id="statTotalUsers">0</h3>
-                    <p>Ilovadagi Mijozlar</p>
                 </div>
             </div>
 
@@ -793,7 +866,47 @@
             </div>
         </section>
 
-        <!-- TAB 3: USERS MANAGEMENT -->
+        <!-- TAB 3: LIVE COURIER CHAT -->
+        <section id="tab-chat" class="tab-section">
+            <div class="chat-container-layout">
+                <!-- THREADS SIDEBAR -->
+                <div class="chat-threads-sidebar">
+                    <h4 style="font-size:14px; font-weight:800; color:#60a5fa; margin-bottom:8px;"><i class="fa-solid fa-comments"></i> Kuryerlar</h4>
+                    <div id="chatThreadsContainer" style="display:flex; flex-direction:column; gap:8px; overflow-y:auto;">
+                        <!-- Threads rendered dynamically -->
+                    </div>
+                </div>
+
+                <!-- MAIN CHAT MESSAGES PANEL -->
+                <div class="chat-main-area">
+                    <div class="chat-header">
+                        <div>
+                            <h3 id="chatHeaderTitle" style="font-size:16px; font-weight:800;">Kuryer bilan Chat</h3>
+                            <span id="chatHeaderSub" style="font-size:12px; color:var(--text-muted);">Suhbatni boshlash uchun chapdan kuryerni tanlang</span>
+                        </div>
+                        <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="clearAllMessages()">
+                            <i class="fa-solid fa-trash"></i> Chatni Tozalash
+                        </button>
+                    </div>
+
+                    <div id="adminChatScrollBox" class="chat-messages-scroll">
+                        <div style="text-align:center; padding:40px; color:var(--text-muted);">
+                            <i class="fa-solid fa-comments" style="font-size:40px; margin-bottom:12px; color:#3b82f6;"></i>
+                            <p>Kuryerlar yozgan xabarlar bu yerda ko'rinadi</p>
+                        </div>
+                    </div>
+
+                    <div class="chat-input-bar">
+                        <input type="text" id="adminChatInput" placeholder="Kuryerga javob yozing..." class="form-control" style="flex:1;">
+                        <button class="btn btn-primary" onclick="sendAdminReply()">
+                            <i class="fa-solid fa-paper-plane"></i> Yuborish
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 4: USERS MANAGEMENT -->
         <section id="tab-users" class="tab-section">
             <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -807,7 +920,7 @@
             </div>
         </section>
 
-        <!-- TAB 4: PRODUCTS MANAGEMENT -->
+        <!-- TAB 5: PRODUCTS MANAGEMENT -->
         <section id="tab-products" class="tab-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3>Do'kon Mahsulotlari Ro'yxati</h3>
@@ -821,12 +934,13 @@
             </div>
         </section>
 
-        <!-- TAB 5: SYSTEM MONITOR -->
+        <!-- TAB 6: SYSTEM MONITOR -->
         <section id="tab-system" class="tab-section">
             <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
                 <h3>Tizim Holati va Loglar</h3>
                 <p style="color: var(--text-muted); margin-top: 8px;">Render Backend API Server statusi: <strong style="color: var(--success-color);">A'LO (ONLINE)</strong></p>
                 <div style="margin-top: 20px; background: var(--bg-primary); padding: 16px; border-radius: 10px; font-family: monospace; font-size: 13px; color: #a78bfa;">
+                    <div>[API STATUS] GET /api/messages -> OK 200</div>
                     <div>[API STATUS] GET /api/couriers -> OK 200</div>
                     <div>[API STATUS] GET /api/users -> OK 200</div>
                     <div>[API STATUS] GET /api/products -> OK 200</div>
@@ -836,47 +950,6 @@
             </div>
         </section>
     </main>
-
-    <!-- ADD PRODUCT MODAL -->
-    <div class="modal-overlay hidden" id="addProductModal">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3>Yangi Mahsulot Qo'shish</h3>
-                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 20px;" onclick="closeAddProductModal()"></i>
-            </div>
-            <form id="productForm" onsubmit="handleCreateProduct(event)">
-                <div class="form-group">
-                    <label for="prodTitle">Mahsulot Nomi</label>
-                    <input type="text" id="prodTitle" class="form-control" placeholder="Masalan: iPhone 16 Pro Max" required>
-                </div>
-                <div class="form-group">
-                    <label for="prodPrice">Narxi (so'm)</label>
-                    <input type="number" id="prodPrice" class="form-control" placeholder="15000000" required>
-                </div>
-                <div class="form-group">
-                    <label for="prodCategory">Kategoriya</label>
-                    <select id="prodCategory" class="form-control">
-                        <option value="Smartfonlar">Smartfonlar</option>
-                        <option value="Kiyimlar">Kiyimlar</option>
-                        <option value="Aksessuarlar">Aksessuarlar</option>
-                        <option value="Oziq-ovqat">Oziq-ovqat</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="prodImage">Rasm URL (HTTPS)</label>
-                    <input type="url" id="prodImage" class="form-control" placeholder="https://images.unsplash.com/..." required>
-                </div>
-                <div class="form-group">
-                    <label for="prodDesc">Tavsif</label>
-                    <textarea id="prodDesc" class="form-control" rows="3" placeholder="Mahsulot haqida qisqacha ma'lumot"></textarea>
-                </div>
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeAddProductModal()">Bekor qilish</button>
-                    <button type="submit" class="btn btn-primary" style="flex:1;">Saqlash</button>
-                </div>
-            </form>
-        </div>
-    </div>
 
     <!-- TOAST -->
     <div id="toast" class="toast hidden">
@@ -891,13 +964,15 @@
         let products = [];
         let users = [];
         let couriers = [];
+        let messages = [];
+        let selectedCourierPhone = null;
         let currentFilter = 'all';
         let isSoundEnabled = true;
         let previousOrdersHash = "";
         let previousUsersHash = "";
         let previousCouriersHash = "";
+        let previousMessagesHash = "";
 
-        // UNLOCK AUDIO ON USER INTERACTION
         let audioCtx = null;
         function unlockAudio() {
             try {
@@ -913,7 +988,6 @@
         window.addEventListener('click', unlockAudio, { once: true });
         window.addEventListener('keydown', unlockAudio, { once: true });
 
-        // AUDIO CHIME
         function playChime() {
             if (!isSoundEnabled) return;
             try {
@@ -956,7 +1030,6 @@
             }
         }
 
-        // TAB SWITCH
         function switchTab(tab) {
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
@@ -965,33 +1038,39 @@
                 document.querySelectorAll('.nav-item')[0].classList.add('active');
                 document.getElementById('tab-orders').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Buyurtmalar Boshqaruvi";
-                document.getElementById('tabSub').textContent = "Barcha kelgan buyurtmalarni jonli ko'rish va statusini yangilash (Avto-Sinxron 1s)";
+                document.getElementById('tabSub').textContent = "Barcha kelgan buyurtmalarni jonli ko'rish va statusini yangilash";
             } else if (tab === 'couriers') {
                 document.querySelectorAll('.nav-item')[1].classList.add('active');
                 document.getElementById('tab-couriers').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Kuryerlar Boshqaruvi";
                 document.getElementById('tabSub').textContent = "Ilovaga ulangan kuryerlar ro'yxati va ruxsat berish";
-            } else if (tab === 'users') {
+            } else if (tab === 'chat') {
                 document.querySelectorAll('.nav-item')[2].classList.add('active');
+                document.getElementById('tab-chat').classList.add('active');
+                document.getElementById('tabTitle').textContent = "Kuryerlar Bilan Jonli Chat";
+                document.getElementById('tabSub').textContent = "Kuryerlar tomonidan yuborilgan xabarlarga javob qaytarish";
+                const badge = document.getElementById('unreadAdminChatBadge');
+                if (badge) badge.style.display = 'none';
+            } else if (tab === 'users') {
+                document.querySelectorAll('.nav-item')[3].classList.add('active');
                 document.getElementById('tab-users').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Mijozlar Boshqaruvi";
                 document.getElementById('tabSub').textContent = "Ilovaga ulangan va ro'yxatdan o'tgan foydalanuvchilar";
             } else if (tab === 'products') {
-                document.querySelectorAll('.nav-item')[3].classList.add('active');
+                document.querySelectorAll('.nav-item')[4].classList.add('active');
                 document.getElementById('tab-products').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Mahsulotlar Boshqaruvi";
                 document.getElementById('tabSub').textContent = "Tasanno do'konidagi mahsulotlarni qo'shish va o'chirish";
             } else {
-                document.querySelectorAll('.nav-item')[4].classList.add('active');
+                document.querySelectorAll('.nav-item')[5].classList.add('active');
                 document.getElementById('tab-system').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Tizim Statistika va Loglar";
                 document.getElementById('tabSub').textContent = "Render Cloud server holati";
             }
         }
 
-        // LOAD DATA
         async function loadAllData(showMsg = false) {
-            await Promise.all([loadOrders(), loadProducts(), loadUsers(), loadCouriers()]);
+            await Promise.all([loadOrders(), loadProducts(), loadUsers(), loadCouriers(), loadMessages()]);
             if (showMsg) showToast("Barcha ma'lumotlar yangilandi!");
         }
 
@@ -1014,7 +1093,7 @@
                         }
                     }
                 }
-            } catch(e) { console.error("Orders fetch error", e); }
+            } catch(e) {}
         }
 
         async function loadProducts() {
@@ -1028,7 +1107,7 @@
                         updateStats();
                     }
                 }
-            } catch(e) { console.error("Products fetch error", e); }
+            } catch(e) {}
         }
 
         async function loadUsers() {
@@ -1046,7 +1125,7 @@
                         }
                     }
                 }
-            } catch(e) { console.error("Users fetch error", e); }
+            } catch(e) {}
         }
 
         async function loadCouriers() {
@@ -1069,7 +1148,178 @@
                         }
                     }
                 }
-            } catch(e) { console.error("Couriers fetch error", e); }
+            } catch(e) {}
+        }
+
+        async function loadMessages() {
+            try {
+                const res = await fetch(`${API_BASE}/api/messages`, { cache: 'no-cache' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data)) {
+                        const currentHash = JSON.stringify(data);
+                        if (currentHash !== previousMessagesHash) {
+                            if (previousMessagesHash !== "" && data.length > messages.length) {
+                                const last = data[data.length - 1];
+                                if (last.sender === 'Courier') {
+                                    playChime();
+                                    showToast(`💬 ${last.courierName}dan yangi xabar!`);
+                                    const badge = document.getElementById('unreadAdminChatBadge');
+                                    if (badge) {
+                                        badge.textContent = '!';
+                                        badge.style.display = 'inline-block';
+                                    }
+                                }
+                            }
+                            previousMessagesHash = currentHash;
+                            messages = data;
+                            renderChatThreads();
+                            renderAdminChatBox();
+                            updateStats();
+                        }
+                    }
+                }
+            } catch(e) {}
+        }
+
+        async function sendAdminReply() {
+            const input = document.getElementById('adminChatInput');
+            const text = input ? input.value.trim() : '';
+            if (!text) return;
+
+            const selectedCourier = couriers.find(c => c.phone === selectedCourierPhone || (c.phone && c.phone.replace(/\D/g, '') === (selectedCourierPhone || '').replace(/\D/g, '')));
+
+            try {
+                const res = await fetch(`${API_BASE}/api/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sender: 'Admin',
+                        courierName: selectedCourier ? selectedCourier.name : 'Kuryer',
+                        courierPhone: selectedCourierPhone || (couriers[0] ? couriers[0].phone : ''),
+                        text: text
+                    })
+                });
+
+                if (res.ok) {
+                    input.value = '';
+                    loadMessages();
+                }
+            } catch(e){ showToast("Xatolik yuz berdi"); }
+        }
+
+        async function clearAllMessages() {
+            if (confirm("Rostdan ham barcha chat xabarlarini o'chirmoqchisiz?")) {
+                try {
+                    const res = await fetch(`${API_BASE}/api/messages`, { method: 'DELETE' });
+                    if (res.ok) {
+                        showToast("Chat tozalandi");
+                        previousMessagesHash = "";
+                        loadMessages();
+                    }
+                } catch(e){}
+            }
+        }
+
+        function renderChatThreads() {
+            const container = document.getElementById('chatThreadsContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const courierMap = new Map();
+            messages.forEach(m => {
+                const key = m.courierPhone || m.courierName;
+                if (!courierMap.has(key)) {
+                    courierMap.set(key, { name: m.courierName, phone: m.courierPhone, lastText: m.text, time: m.timestamp });
+                } else {
+                    const item = courierMap.get(key);
+                    item.lastText = m.text;
+                    item.time = m.timestamp;
+                }
+            });
+
+            if (couriers.length > 0) {
+                couriers.forEach(c => {
+                    const key = c.phone || c.name;
+                    if (!courierMap.has(key)) {
+                        courierMap.set(key, { name: c.name, phone: c.phone, lastText: 'Suhbat yo\'q', time: '' });
+                    }
+                });
+            }
+
+            if (courierMap.size === 0) {
+                container.innerHTML = `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:12px;">Hozircha kuryerlar yo'q</div>`;
+                return;
+            }
+
+            if (!selectedCourierPhone && courierMap.size > 0) {
+                selectedCourierPhone = Array.from(courierMap.values())[0].phone;
+            }
+
+            courierMap.forEach((info, phone) => {
+                const isSelected = phone === selectedCourierPhone;
+                const div = document.createElement('div');
+                div.className = `thread-item ${isSelected ? 'active' : ''}`;
+                div.onclick = () => {
+                    selectedCourierPhone = phone;
+                    renderChatThreads();
+                    renderAdminChatBox();
+                };
+                div.innerHTML = `
+                    <div style="font-weight:700; font-size:13px; color:white;">${info.name}</div>
+                    <div style="font-size:11px; color:#60a5fa;">${info.phone}</div>
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.lastText}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function renderAdminChatBox() {
+            const box = document.getElementById('adminChatScrollBox');
+            const title = document.getElementById('chatHeaderTitle');
+            const sub = document.getElementById('chatHeaderSub');
+            if (!box) return;
+
+            const selectedCourier = couriers.find(c => c.phone === selectedCourierPhone || (c.phone && c.phone.replace(/\D/g, '') === (selectedCourierPhone || '').replace(/\D/g, '')));
+
+            if (title) title.textContent = selectedCourier ? `Chat: ${selectedCourier.name}` : "Kuryer bilan Chat";
+            if (sub) sub.textContent = selectedCourier ? `Tel: ${selectedCourier.phone}` : "Suhbatlashish uchun chapdan kuryerni tanlang";
+
+            const filteredMsgs = messages.filter(m => {
+                if (!selectedCourierPhone) return true;
+                const cClean = selectedCourierPhone.replace(/\D/g, '');
+                const mClean = (m.courierPhone || '').replace(/\D/g, '');
+                return mClean === cClean || m.courierName === (selectedCourier ? selectedCourier.name : '');
+            });
+
+            box.innerHTML = '';
+            if (filteredMsgs.length === 0) {
+                box.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-muted);">
+                    <i class="fa-solid fa-comments" style="font-size:40px; margin-bottom:12px; color:#3b82f6;"></i>
+                    <p>Ushbu kuryer bilan hali xabarlar yo'q</p>
+                </div>`;
+                return;
+            }
+
+            filteredMsgs.forEach(m => {
+                const isAdmin = m.sender === 'Admin';
+                const msgDiv = document.createElement('div');
+                msgDiv.style.display = 'flex';
+                msgDiv.style.flexDirection = 'column';
+                msgDiv.style.alignItems = isAdmin ? 'flex-end' : 'flex-start';
+
+                msgDiv.innerHTML = `
+                    <div style="font-size:10px; color:var(--text-muted); margin-bottom:2px; font-weight:600;">
+                        ${isAdmin ? '🛡 Bosh Admin' : m.courierName} • ${m.timestamp || ''}
+                    </div>
+                    <div style="max-width:70%; padding:10px 14px; border-radius:${isAdmin ? '16px 16px 2px 16px' : '16px 16px 16px 2px'}; background:${isAdmin ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#334155'}; color:white; font-size:14px; line-height:1.4;">
+                        ${m.text}
+                    </div>
+                `;
+                box.appendChild(msgDiv);
+            });
+
+            box.scrollTop = box.scrollHeight;
         }
 
         async function approveCourier(courierId, newStatus) {
@@ -1090,7 +1340,6 @@
             } catch(e){ showToast("Xatolik yuz berdi"); }
         }
 
-        // UPDATE STATUS
         async function updateStatus(orderId, newStatus) {
             try {
                 const res = await fetch(`${API_BASE}/api/orders/${orderId}/status`, {
@@ -1117,7 +1366,6 @@
             }
         }
 
-        // RENDER ORDERS
         function renderOrders() {
             const container = document.getElementById('ordersContainer');
             container.innerHTML = '';
@@ -1187,7 +1435,6 @@
             });
         }
 
-        // RENDER COURIERS
         function renderCouriers() {
             const pendingContainer = document.getElementById('pendingCouriersContainer');
             const approvedContainer = document.getElementById('approvedCouriersContainer');
@@ -1216,7 +1463,6 @@
                 </div>`;
             } else {
                 pendingCouriers.forEach(c => {
-                    const cleanPhone = (c.phone || '').replace(/\D/g, '');
                     const card = document.createElement('div');
                     card.className = 'user-card';
                     card.style.border = '2px solid #f59e0b';
@@ -1268,7 +1514,6 @@
             }
         }
 
-        // RENDER USERS
         function renderUsers() {
             const container = document.getElementById('usersContainer');
             container.innerHTML = '';
@@ -1309,7 +1554,6 @@
             renderOrders();
         }
 
-        // RENDER PRODUCTS
         function renderProducts() {
             const container = document.getElementById('productsContainer');
             container.innerHTML = '';
@@ -1375,13 +1619,13 @@
             document.getElementById('addProductModal').classList.add('hidden');
         }
 
-        // STATS
         function updateStats() {
             document.getElementById('statTotalOrders').textContent = orders.length;
             document.getElementById('statNewOrders').textContent = orders.filter(o => o.status === 'Yangi').length;
             document.getElementById('statTotalUsers').textContent = users.length;
             document.getElementById('statTotalProducts').textContent = products.length;
             document.getElementById('statTotalCouriers').textContent = couriers.filter(c => c.status === 'Approved').length;
+            document.getElementById('statTotalMessages').textContent = messages.length;
 
             const totalSum = orders
                 .filter(o => o.status !== 'Bekor qilindi')
@@ -1390,7 +1634,6 @@
             document.getElementById('statTotalRevenue').textContent = formatPrice(totalSum) + " so'm";
         }
 
-        // UTILS
         function formatPrice(p) {
             return (parseFloat(p) || 0).toLocaleString('fr-FR');
         }
@@ -1408,6 +1651,7 @@
             loadOrders();
             loadUsers();
             loadCouriers();
+            loadMessages();
         }, 1000);
 
         setInterval(() => {

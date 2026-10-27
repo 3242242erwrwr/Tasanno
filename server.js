@@ -47,6 +47,7 @@ let products = [
 let orders = [];
 let users = [];
 let couriers = [];
+let messages = [];
 
 // Admin web route
 app.get('/admin', (req, res) => {
@@ -103,12 +104,10 @@ app.post('/api/users', (req, res) => {
 });
 
 // ================= COURIERS MANAGEMENT API =================
-// GET all couriers
 app.get('/api/couriers', (req, res) => {
     res.json(couriers);
 });
 
-// POST register or ping courier
 app.post('/api/couriers', (req, res) => {
     const { id, name, phone } = req.body;
     if (!name || !phone) {
@@ -129,7 +128,7 @@ app.post('/api/couriers', (req, res) => {
         id: id || ('COUR-' + Math.floor(100000 + Math.random() * 900000)),
         name,
         phone,
-        status: 'Pending', // Pending approval from Web Admin
+        status: 'Pending',
         registeredAt: new Date().toLocaleString('uz-UZ'),
         lastActive: new Date().toLocaleString('uz-UZ')
     };
@@ -138,7 +137,6 @@ app.post('/api/couriers', (req, res) => {
     res.status(201).json(newCourier);
 });
 
-// GET courier approval status
 app.get('/api/couriers/:id/status', (req, res) => {
     const { id } = req.params;
     const cleanId = id.replace(/\D/g, '');
@@ -155,10 +153,9 @@ app.get('/api/couriers/:id/status', (req, res) => {
     res.json({ status: 'Pending' });
 });
 
-// PUT approve or reject courier (Web Admin)
 app.put('/api/couriers/:id/approve', (req, res) => {
     const { id } = req.params;
-    const { status } = req.body; // 'Approved' or 'Rejected'
+    const { status } = req.body;
     const cleanId = id.replace(/\D/g, '');
 
     const courier = couriers.find(c => {
@@ -174,6 +171,36 @@ app.put('/api/couriers/:id/approve', (req, res) => {
         return res.json({ message: `Courier ${status}`, courier });
     }
     res.status(404).json({ error: 'Courier not found' });
+});
+
+// ================= CHAT MESSAGES API =================
+app.get('/api/messages', (req, res) => {
+    res.json(messages);
+});
+
+app.post('/api/messages', (req, res) => {
+    const { sender, courierName, courierPhone, text } = req.body;
+    if (!text || !text.trim()) {
+        return res.status(400).json({ error: 'Message text is required' });
+    }
+
+    const newMessage = {
+        id: 'MSG-' + Date.now(),
+        sender: sender || 'Courier', // 'Courier' or 'Admin'
+        courierName: courierName || 'Kuryer',
+        courierPhone: courierPhone || 'Kiritilmagan',
+        text: text.trim(),
+        timestamp: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' }),
+        date: new Date().toLocaleDateString('uz-UZ')
+    };
+
+    messages.push(newMessage);
+    res.status(201).json(newMessage);
+});
+
+app.delete('/api/messages', (req, res) => {
+    messages = [];
+    res.json({ message: 'All messages cleared' });
 });
 
 // GET products
