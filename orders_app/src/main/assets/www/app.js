@@ -81,6 +81,7 @@ function initApp() {
         }
 
         checkCourierAuth();
+        startCourierStatusPolling();
     }, 600);
 
     renderOrders();
@@ -115,7 +116,6 @@ function checkCourierAuth() {
         if (courierWaitingModal) courierWaitingModal.classList.add('hidden');
         if (appContainer) appContainer.classList.add('hidden');
         if (courierBlockedModal) courierBlockedModal.classList.remove('hidden');
-        startCourierStatusPolling();
         return false;
     }
 
@@ -130,7 +130,6 @@ function checkCourierAuth() {
             if (phoneElem) phoneElem.textContent = currentCourier.phone;
             courierWaitingModal.classList.remove('hidden');
         }
-        startCourierStatusPolling();
         return false;
     }
 
@@ -139,10 +138,6 @@ function checkCourierAuth() {
     if (courierWaitingModal) courierWaitingModal.classList.add('hidden');
     if (courierBlockedModal) courierBlockedModal.classList.add('hidden');
     if (appContainer) appContainer.classList.remove('hidden');
-    if (courierPollInterval) {
-        clearInterval(courierPollInterval);
-        courierPollInterval = null;
-    }
     return true;
 }
 
@@ -156,28 +151,21 @@ function startCourierStatusPolling() {
             const res = await fetch(`${API_BASE_URL}/api/couriers/${encodeURIComponent(searchId)}/status`);
             if (res.ok) {
                 const data = await res.json();
-                if (data.status === 'Approved') {
+                if (data.status === 'Approved' && currentCourier.status !== 'Approved') {
                     currentCourier.status = 'Approved';
                     localStorage.setItem('currentCourier', JSON.stringify(currentCourier));
-                    if (courierPollInterval) {
-                        clearInterval(courierPollInterval);
-                        courierPollInterval = null;
-                    }
                     checkCourierAuth();
                     showToast("✅ Admin ruxsat berdi! Xush kelibsiz!");
                     renderOrders();
-                } else if (data.status === 'Blocked') {
+                } else if (data.status === 'Blocked' && currentCourier.status !== 'Blocked') {
                     currentCourier.status = 'Blocked';
                     localStorage.setItem('currentCourier', JSON.stringify(currentCourier));
                     checkCourierAuth();
+                    showToast("⛔ Akkountingiz bloklandi!");
                 } else if (data.status === 'Rejected') {
                     alert("Admin sizning ruxsat so'rovingizni rad etdi.");
                     localStorage.removeItem('currentCourier');
                     currentCourier = null;
-                    if (courierPollInterval) {
-                        clearInterval(courierPollInterval);
-                        courierPollInterval = null;
-                    }
                     checkCourierAuth();
                 }
             }
@@ -216,6 +204,7 @@ async function handleCourierSubmit() {
     } catch(e){}
 
     checkCourierAuth();
+    startCourierStatusPolling();
 }
 
 function setupListeners() {
@@ -306,8 +295,8 @@ function handleCourierLogout() {
     if (confirm("Rostdan ham kuryer profildan chiqmoqchisiz?")) {
         localStorage.removeItem('currentCourier');
         currentCourier = null;
-        if (courierPollInterval) clearInterval(courierPollInterval);
         document.getElementById('courierWaitingModal')?.classList.add('hidden');
+        document.getElementById('courierBlockedModal')?.classList.add('hidden');
         document.getElementById('courierAuthModal')?.classList.remove('hidden');
         const nameIn = document.getElementById('courierNameInput');
         const phoneIn = document.getElementById('courierPhoneInput');
