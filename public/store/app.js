@@ -212,17 +212,27 @@ function initApp() {
     renderProducts();
     loadCartForCurrentUser();
     fetchBackendProducts();
+
+    setInterval(() => {
+        fetchBackendProducts();
+    }, 2000);
 }
+
+let previousProductsHash = "";
 
 async function fetchBackendProducts() {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/products`);
+        const response = await fetch(`${API_BASE_URL}/api/products`, { cache: 'no-cache' });
         if (response.ok) {
             const data = await response.json();
-            if (Array.isArray(data) && data.length > 0) {
-                products = data;
-                localStorage.setItem('products', JSON.stringify(products));
-                renderProducts();
+            if (Array.isArray(data)) {
+                const currentHash = JSON.stringify(data);
+                if (currentHash !== previousProductsHash) {
+                    previousProductsHash = currentHash;
+                    products = data;
+                    localStorage.setItem('products', JSON.stringify(products));
+                    renderProducts();
+                }
             }
         }
     } catch (e) { console.warn("Backend products fetch failed:", e); }
