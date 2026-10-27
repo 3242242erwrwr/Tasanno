@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
                 loadWithOverviewMode = true
             }
 
-            loadUrl("https://tasanno-im7q.onrender.com/store/")
+            loadUrl("file:///android_asset/www/index.html")
         }
 
         setContentView(mWebView)

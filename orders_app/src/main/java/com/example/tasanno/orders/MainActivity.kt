@@ -51,7 +51,7 @@ class MainActivity : Activity() {
                 loadWithOverviewMode = true
             }
 
-            loadUrl("https://tasanno-im7q.onrender.com/orders/")
+            loadUrl("file:///android_asset/www/index.html")
         }
 
         setContentView(mWebView)
