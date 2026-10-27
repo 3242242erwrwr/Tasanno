@@ -1074,14 +1074,18 @@
 
         async function approveCourier(courierId, newStatus) {
             try {
-                const res = await fetch(`${API_BASE}/api/couriers/${courierId}/approve`, {
+                const encodedId = encodeURIComponent(courierId);
+                const res = await fetch(`${API_BASE}/api/couriers/${encodedId}/approve`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: newStatus })
                 });
                 if (res.ok) {
                     showToast(newStatus === 'Approved' ? "✅ Kuryerga ruxsat berildi!" : "❌ Kuryer rad etildi");
+                    previousCouriersHash = "";
                     loadCouriers();
+                } else {
+                    showToast("Xatolik yuz berdi");
                 }
             } catch(e){ showToast("Xatolik yuz berdi"); }
         }

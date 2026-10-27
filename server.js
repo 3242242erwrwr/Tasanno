@@ -90,7 +90,7 @@ app.post('/api/users', (req, res) => {
     }
 
     const newUser = {
-        id: id || ('#ID-' + Math.floor(100000 + Math.random() * 900000)),
+        id: id || ('ID-' + Math.floor(100000 + Math.random() * 900000)),
         name: name || 'Yangi Tashrif Buyuruvchi',
         phone: phone || 'Kiritilmagan',
         avatar: avatar || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
@@ -126,7 +126,7 @@ app.post('/api/couriers', (req, res) => {
     }
 
     const newCourier = {
-        id: id || ('#COUR-' + Math.floor(100000 + Math.random() * 900000)),
+        id: id || ('COUR-' + Math.floor(100000 + Math.random() * 900000)),
         name,
         phone,
         status: 'Pending', // Pending approval from Web Admin
@@ -141,7 +141,14 @@ app.post('/api/couriers', (req, res) => {
 // GET courier approval status
 app.get('/api/couriers/:id/status', (req, res) => {
     const { id } = req.params;
-    const courier = couriers.find(c => String(c.id) === String(id) || (c.phone && c.phone.replace(/\D/g, '') === id.replace(/\D/g, '')));
+    const cleanId = id.replace(/\D/g, '');
+    const courier = couriers.find(c => {
+        if (String(c.id) === String(id)) return true;
+        if (c.id && c.id.replace(/\D/g, '') === cleanId) return true;
+        if (c.phone && c.phone.replace(/\D/g, '') === cleanId) return true;
+        return false;
+    });
+
     if (courier) {
         return res.json({ status: courier.status, courier });
     }
@@ -152,7 +159,15 @@ app.get('/api/couriers/:id/status', (req, res) => {
 app.put('/api/couriers/:id/approve', (req, res) => {
     const { id } = req.params;
     const { status } = req.body; // 'Approved' or 'Rejected'
-    const courier = couriers.find(c => String(c.id) === String(id));
+    const cleanId = id.replace(/\D/g, '');
+
+    const courier = couriers.find(c => {
+        if (String(c.id) === String(id)) return true;
+        if (c.id && c.id.replace(/\D/g, '') === cleanId) return true;
+        if (c.phone && c.phone.replace(/\D/g, '') === cleanId) return true;
+        return false;
+    });
+
     if (courier) {
         courier.status = status;
         courier.lastActive = new Date().toLocaleString('uz-UZ');
@@ -219,7 +234,7 @@ app.post('/api/orders', (req, res) => {
 
     if (!user) {
         users.unshift({
-            id: orderData.userId || ('#ID-' + Math.floor(100000 + Math.random() * 900000)),
+            id: orderData.userId || ('ID-' + Math.floor(100000 + Math.random() * 900000)),
             name: orderData.name,
             phone: orderData.phone,
             avatar: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
