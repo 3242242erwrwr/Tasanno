@@ -157,6 +157,13 @@
             border-radius: 50%;
             background-color: var(--success-color);
             box-shadow: 0 0 8px var(--success-color);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
         }
 
         /* MAIN CONTENT AREA */
@@ -327,12 +334,18 @@
             gap: 14px;
             position: relative;
             box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            transition: border-color 0.2s;
+            transition: border-color 0.2s, transform 0.2s;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .order-card.new-highlight {
             border: 2px solid var(--accent-color);
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
         }
 
         .order-header {
@@ -662,7 +675,7 @@
         <header class="top-header">
             <div class="page-title">
                 <h1 id="tabTitle">Buyurtmalar Boshqaruvi</h1>
-                <p id="tabSub">Tasanno va Tasanno Zakazlar tizimini jonli kuzatish</p>
+                <p id="tabSub">Tasanno va Tasanno Zakazlar tizimini jonli kuzatish (Avto-Sinxron 1s)</p>
             </div>
             <div class="header-actions">
                 <button class="btn btn-danger" onclick="clearAllOrders()">
@@ -844,24 +857,40 @@
         let users = [];
         let currentFilter = 'all';
         let isSoundEnabled = true;
+        let previousOrdersHash = "";
+
+        // UNLOCK AUDIO ON USER INTERACTION
+        let audioCtx = null;
+        function unlockAudio() {
+            try {
+                if (!audioCtx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) audioCtx = new AudioCtx();
+                }
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+            } catch(e){}
+        }
+        window.addEventListener('click', unlockAudio, { once: true });
+        window.addEventListener('keydown', unlockAudio, { once: true });
 
         // AUDIO CHIME
         function playChime() {
             if (!isSoundEnabled) return;
             try {
-                const AudioCtx = window.AudioContext || window.webkitAudioContext;
-                if (!AudioCtx) return;
-                const ctx = new AudioCtx();
+                unlockAudio();
+                const ctx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(880, ctx.currentTime);
-                gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+                osc.frequency.setValueAtTime(880, ctx.currentTime); // A5
+                gain.gain.setValueAtTime(0.4, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
                 osc.connect(gain);
                 gain.connect(ctx.destination);
                 osc.start();
-                osc.stop(ctx.currentTime + 0.5);
+                osc.stop(ctx.currentTime + 0.6);
             } catch(e){}
         }
 
@@ -880,6 +909,7 @@
                     const res = await fetch(`${API_BASE}/api/orders`, { method: 'DELETE' });
                     if (res.ok) {
                         showToast("Barcha buyurtmalar tozalandi!");
+                        previousOrdersHash = "";
                         loadAllData();
                     }
                 } catch (e) {
@@ -897,7 +927,7 @@
                 document.querySelectorAll('.nav-item')[0].classList.add('active');
                 document.getElementById('tab-orders').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Buyurtmalar Boshqaruvi";
-                document.getElementById('tabSub').textContent = "Barcha kelgan buyurtmalarni jonli ko'rish va statusini yangilash";
+                document.getElementById('tabSub').textContent = "Barcha kelgan buyurtmalarni jonli ko'rish va statusini yangilash (Avto-Sinxron 1s)";
             } else if (tab === 'users') {
                 document.querySelectorAll('.nav-item')[1].classList.add('active');
                 document.getElementById('tab-users').classList.add('active');
@@ -924,17 +954,21 @@
 
         async function loadOrders() {
             try {
-                const res = await fetch(`${API_BASE}/api/orders`);
+                const res = await fetch(`${API_BASE}/api/orders`, { cache: 'no-cache' });
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data)) {
-                        if (data.length > orders.length && orders.length > 0) {
-                            playChime();
-                            showToast("🔔 Yangi buyurtma keldi!");
+                        const currentHash = JSON.stringify(data);
+                        if (currentHash !== previousOrdersHash) {
+                            if (previousOrdersHash !== "" && data.length > orders.length) {
+                                playChime();
+                                showToast("🔔 Yangi buyurtma keldi!");
+                            }
+                            previousOrdersHash = currentHash;
+                            orders = data;
+                            renderOrders();
+                            updateStats();
                         }
-                        orders = data;
-                        renderOrders();
-                        updateStats();
                     }
                 }
             } catch(e) { console.error("Orders fetch error", e); }
@@ -942,7 +976,7 @@
 
         async function loadProducts() {
             try {
-                const res = await fetch(`${API_BASE}/api/products`);
+                const res = await fetch(`${API_BASE}/api/products`, { cache: 'no-cache' });
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data)) {
@@ -956,7 +990,7 @@
 
         async function loadUsers() {
             try {
-                const res = await fetch(`${API_BASE}/api/users`);
+                const res = await fetch(`${API_BASE}/api/users`, { cache: 'no-cache' });
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data)) {
@@ -1197,10 +1231,15 @@
             setTimeout(() => toast.classList.add('hidden'), 2500);
         }
 
-        // INIT & AUTO-POLL
+        // INIT & HIGH-SPEED 1-SECOND AUTO-SYNC
         loadAllData();
         setInterval(() => {
-            loadAllData(false);
+            loadOrders();
+        }, 1000);
+
+        setInterval(() => {
+            loadProducts();
+            loadUsers();
         }, 3000);
     </script>
 </body>
