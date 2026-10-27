@@ -110,7 +110,7 @@ app.get('/api/couriers', (req, res) => {
 });
 
 app.post('/api/couriers', (req, res) => {
-    const { id, name, phone } = req.body;
+    const { id, name, phone, status } = req.body;
     if (!name || !phone) {
         return res.status(400).json({ error: 'Name and phone required' });
     }
@@ -121,6 +121,9 @@ app.post('/api/couriers', (req, res) => {
     if (existingCourier) {
         existingCourier.name = name;
         existingCourier.phone = phone;
+        if (status && existingCourier.status !== 'Blocked') {
+            existingCourier.status = status;
+        }
         existingCourier.lastActive = new Date().toLocaleString('uz-UZ');
         return res.json({ message: 'Courier updated', courier: existingCourier });
     }
@@ -129,7 +132,7 @@ app.post('/api/couriers', (req, res) => {
         id: id || ('COUR-' + Math.floor(100000 + Math.random() * 900000)),
         name,
         phone,
-        status: 'Pending',
+        status: status || 'Pending',
         registeredAt: new Date().toLocaleString('uz-UZ'),
         lastActive: new Date().toLocaleString('uz-UZ')
     };
@@ -172,6 +175,38 @@ app.put('/api/couriers/:id/approve', (req, res) => {
         return res.json({ message: `Courier ${status}`, courier });
     }
     res.status(404).json({ error: 'Courier not found' });
+});
+
+app.put('/api/couriers/:id/block', (req, res) => {
+    const { id } = req.params;
+    const cleanId = id.replace(/\D/g, '');
+
+    const courier = couriers.find(c => {
+        if (String(c.id) === String(id)) return true;
+        if (c.id && c.id.replace(/\D/g, '') === cleanId) return true;
+        if (c.phone && c.phone.replace(/\D/g, '') === cleanId) return true;
+        return false;
+    });
+
+    if (courier) {
+        courier.status = 'Blocked';
+        return res.json({ message: 'Courier blocked', courier });
+    }
+    res.status(404).json({ error: 'Courier not found' });
+});
+
+app.delete('/api/couriers/:id', (req, res) => {
+    const { id } = req.params;
+    const cleanId = id.replace(/\D/g, '');
+
+    couriers = couriers.filter(c => {
+        if (String(c.id) === String(id)) return false;
+        if (c.id && c.id.replace(/\D/g, '') === cleanId) return false;
+        if (c.phone && c.phone.replace(/\D/g, '') === cleanId) return false;
+        return true;
+    });
+
+    res.json({ message: 'Courier deleted', id });
 });
 
 // ================= CHAT MESSAGES API =================

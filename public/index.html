@@ -861,7 +861,7 @@
                 <div class="form-group">
                     <label for="prodImageFile"><i class="fa-solid fa-image"></i> Mahsulot Rasmini Tanlang (Galeriyadan)</label>
                     <input type="file" id="prodImageFile" accept="image/*" class="form-control" onchange="previewUploadedImage(event)">
-                    <img id="uploadedImagePreview" src="" style="width:100px; height:100px; object-fit:cover; border-radius:12px; margin-top:8px; display:none; border:2px solid #3b82f6;">
+                    <img id="uploadedImagePreview" src="" alt="Preview" style="width:100px; height:100px; object-fit:cover; border-radius:12px; margin-top:8px; display:none; border:2px solid #3b82f6;">
                 </div>
                 <div class="form-group">
                     <label for="prodDesc">Tavsif</label>
@@ -934,7 +934,7 @@
                 <!-- Messages -->
             </div>
             <div style="display:flex; gap:8px;">
-                <input type="text" id="modalChatInput" placeholder="Kuryerga xabaringizni yozing..." class="form-control" style="flex:1;" onkeypress="if(event.key==='Enter') sendAdminCourierModalMsg()">
+                <input type="text" id="modalChatInput" placeholder="Kuryerga xabaringizni yozing..." class="form-control" style="flex:1;">
                 <button class="btn btn-primary" onclick="sendAdminCourierModalMsg()"><i class="fa-solid fa-paper-plane"></i> Yuborish</button>
             </div>
         </div>
@@ -1153,6 +1153,7 @@
                             previousMessagesHash = currentHash;
                             messages = data;
                             renderAdminCourierModalChat();
+                            renderCouriers();
                             updateStats();
                         }
                     }
@@ -1382,6 +1383,39 @@
             } catch(e){ showToast("Xatolik yuz berdi"); }
         }
 
+        async function blockCourier(courierId) {
+            if (confirm("Rostdan ham ushbu kuryerni BLOKLAMOQCHISIZ? Kuryer ilovasi darhol qulflanadi!")) {
+                try {
+                    const encodedId = encodeURIComponent(courierId);
+                    const res = await fetch(`${API_BASE}/api/couriers/${encodedId}/block`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    if (res.ok) {
+                        showToast("⛔ Kuryer bloklandi!");
+                        previousCouriersHash = "";
+                        loadCouriers();
+                    }
+                } catch(e) { showToast("Xatolik yuz berdi"); }
+            }
+        }
+
+        async function deleteCourier(courierId) {
+            if (confirm("Rostdan ham ushbu kuryerni ro'yxatdan O'CHIRMOQCHISIZ?")) {
+                try {
+                    const encodedId = encodeURIComponent(courierId);
+                    const res = await fetch(`${API_BASE}/api/couriers/${encodedId}`, {
+                        method: 'DELETE'
+                    });
+                    if (res.ok) {
+                        showToast("🗑 Kuryer o'chirildi");
+                        previousCouriersHash = "";
+                        loadCouriers();
+                    }
+                } catch(e) { showToast("Xatolik yuz berdi"); }
+            }
+        }
+
         async function updateStatus(orderId, newStatus) {
             try {
                 const res = await fetch(`${API_BASE}/api/orders/${orderId}/status`, {
@@ -1487,7 +1521,7 @@
             approvedContainer.innerHTML = '';
 
             const pendingCouriers = couriers.filter(c => c.status === 'Pending');
-            const approvedCouriers = couriers.filter(c => c.status === 'Approved');
+            const approvedCouriers = couriers.filter(c => c.status === 'Approved' || c.status === 'Blocked');
 
             if (badge) {
                 if (pendingCouriers.length > 0) {
@@ -1536,20 +1570,49 @@
             } else {
                 approvedCouriers.forEach(c => {
                     const courierOrdersCount = orders.filter(o => o.courierPhone === c.phone || o.courierName === c.name).length;
+                    const cleanPhone = (c.phone || '').replace(/\D/g, '');
+
+                    const courierMsgs = messages.filter(m => m.sender === 'Courier' && ((m.courierPhone && m.courierPhone.replace(/\D/g, '') === cleanPhone) || m.courierName === c.name));
+                    const lastMsg = courierMsgs.length > 0 ? courierMsgs[courierMsgs.length - 1] : null;
+
+                    const isBlocked = c.status === 'Blocked';
+
                     const card = document.createElement('div');
                     card.className = 'user-card';
+                    if (isBlocked) card.style.border = '2px solid #ef4444';
+
                     card.innerHTML = `
-                        <div style="width:50px; height:50px; border-radius:50%; background:rgba(16,185,129,0.15); color:#34d399; display:flex; align-items:center; justify-content:center; font-size:22px;">
-                            <i class="fa-solid fa-user-check"></i>
+                        <div style="width:50px; height:50px; border-radius:50%; background:${isBlocked ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)'}; color:${isBlocked ? '#f87171' : '#34d399'}; display:flex; align-items:center; justify-content:center; font-size:22px;">
+                            <i class="fa-solid ${isBlocked ? 'fa-user-slash' : 'fa-user-check'}"></i>
                         </div>
                         <div class="user-details">
-                            <div class="user-name">${c.name} <span style="background:rgba(16,185,129,0.2); color:#34d399; font-size:10px; padding:2px 8px; border-radius:10px;">🟢 Online</span></div>
+                            <div class="user-name">
+                                ${c.name}
+                                ${isBlocked
+                                    ? `<span style="background:rgba(239,68,68,0.2); color:#f87171; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:800;">⛔ BLOKLANGAN</span>`
+                                    : `<span style="background:rgba(16,185,129,0.2); color:#34d399; font-size:10px; padding:2px 8px; border-radius:10px; font-weight:800;">🟢 Online</span>`}
+                            </div>
                             <div class="user-phone"><i class="fa-solid fa-phone"></i> ${c.phone}</div>
-                            <div class="user-meta"><strong>Qabul qilgan zakazlari:</strong> ${courierOrdersCount} ta zakaz olgan</div>
+                            <div class="user-meta"><strong>Zakazlari:</strong> ${courierOrdersCount} ta olgan</div>
+                            ${lastMsg ? `<div style="background:rgba(239,68,68,0.15); border:1px solid #ef4444; color:#f87171; font-size:11px; font-weight:700; padding:4px 8px; border-radius:8px; margin-top:4px; animation:pulse 1.5s infinite;"><i class="fa-solid fa-comment-dots"></i> Yangi Xabar: "${lastMsg.text}"</div>` : ''}
                         </div>
-                        <button class="btn btn-primary" style="padding:8px 14px; font-size:12px; background:#3b82f6;" onclick="openCourierChatModal('${c.phone}', '${c.name}')">
-                            <i class="fa-solid fa-comments"></i> Xabar Yozish
-                        </button>
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <button class="btn btn-primary" style="padding:6px 10px; font-size:11px; background:#3b82f6;" onclick="openCourierChatModal('${c.phone}', '${c.name}')">
+                                <i class="fa-solid fa-comments"></i> Xabar Yozish
+                            </button>
+                            ${isBlocked ? `
+                                <button class="btn btn-primary" style="padding:6px 10px; font-size:11px; background:#10b981;" onclick="approveCourier('${c.id}', 'Approved')">
+                                    <i class="fa-solid fa-unlock"></i> Blokdan Chiqarish
+                                </button>
+                            ` : `
+                                <button class="btn btn-danger" style="padding:6px 10px; font-size:11px; background:#f59e0b;" onclick="blockCourier('${c.id}')">
+                                    <i class="fa-solid fa-ban"></i> Bloklash
+                                </button>
+                            `}
+                            <button class="btn btn-danger" style="padding:6px 10px; font-size:11px;" onclick="deleteCourier('${c.id}')">
+                                <i class="fa-solid fa-trash"></i> O'chirish
+                            </button>
+                        </div>
                     `;
                     approvedContainer.appendChild(card);
                 });

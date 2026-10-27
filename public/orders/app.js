@@ -85,16 +85,36 @@ function initApp() {
 function checkCourierAuth() {
     const courierAuthModal = document.getElementById('courierAuthModal');
     const courierWaitingModal = document.getElementById('courierWaitingModal');
+    const courierBlockedModal = document.getElementById('courierBlockedModal');
     const appContainer = document.getElementById('appContainer');
 
     if (!currentCourier) {
         if (courierAuthModal) courierAuthModal.classList.remove('hidden');
         if (courierWaitingModal) courierWaitingModal.classList.add('hidden');
+        if (courierBlockedModal) courierBlockedModal.classList.add('hidden');
+        if (appContainer) appContainer.classList.add('hidden');
+        return false;
+    }
+
+    fetch(`${API_BASE_URL}/api/couriers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentCourier)
+    }).catch(e => {});
+
+    if (currentCourier.status === 'Blocked') {
+        if (courierAuthModal) courierAuthModal.classList.add('hidden');
+        if (courierWaitingModal) courierWaitingModal.classList.add('hidden');
+        if (appContainer) appContainer.classList.add('hidden');
+        if (courierBlockedModal) courierBlockedModal.classList.remove('hidden');
+        startCourierStatusPolling();
         return false;
     }
 
     if (currentCourier.status !== 'Approved') {
         if (courierAuthModal) courierAuthModal.classList.add('hidden');
+        if (courierBlockedModal) courierBlockedModal.classList.add('hidden');
+        if (appContainer) appContainer.classList.add('hidden');
         if (courierWaitingModal) {
             const nameElem = document.getElementById('waitCourierName');
             const phoneElem = document.getElementById('waitCourierPhone');
@@ -108,6 +128,7 @@ function checkCourierAuth() {
 
     if (courierAuthModal) courierAuthModal.classList.add('hidden');
     if (courierWaitingModal) courierWaitingModal.classList.add('hidden');
+    if (courierBlockedModal) courierBlockedModal.classList.add('hidden');
     if (appContainer) appContainer.classList.remove('hidden');
     if (courierPollInterval) {
         clearInterval(courierPollInterval);
@@ -136,6 +157,10 @@ function startCourierStatusPolling() {
                     checkCourierAuth();
                     showToast("✅ Admin ruxsat berdi! Xush kelibsiz!");
                     renderOrders();
+                } else if (data.status === 'Blocked') {
+                    currentCourier.status = 'Blocked';
+                    localStorage.setItem('currentCourier', JSON.stringify(currentCourier));
+                    checkCourierAuth();
                 } else if (data.status === 'Rejected') {
                     alert("Admin sizning ruxsat so'rovingizni rad etdi.");
                     localStorage.removeItem('currentCourier');
@@ -325,7 +350,9 @@ async function sendChatMessage() {
         if (res.ok) {
             syncChatMessages();
         }
-    } catch (e) {}
+    } catch (e) {
+        console.warn("Chat message send error:", e);
+    }
 }
 
 let previousMessagesHash = "";
