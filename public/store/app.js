@@ -1,7 +1,8 @@
 // APP CONFIGURATION
-const API_BASE_URL = window.location.origin.includes('http') ? window.location.origin : 'https://tasanno-im7q.onrender.com';
+const API_BASE_URL = window.location.origin.includes('http') ? window.location.origin : "https://tasanno-im7q.onrender.com";
 const BOT_TOKEN = "8394907443:AAGOJEcA7SLdfG8MEMP_3fNPeWOD8wqPmHo";
 const ADMIN_PIN = "7777";
+const ADMIN_CHAT_ID = ""; // Buyurtmalar keladigan Admin Telegram ID (ixtiyoriy)
 
 // INITIAL SAMPLE DATA
 const DEFAULT_PRODUCTS = [
@@ -27,381 +28,476 @@ const DEFAULT_PRODUCTS = [
         price: 350000,
         category: "Kiyimlar",
         image: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=400&q=80",
-        description: "Yuqori sifatli 100% paxtadan tayyorlangan zamonaviy va issiq xudi."
+        description: "Yuqori sifatli 100% paxtadan tayyorlangan issiq xudi. Har kungi kiyishga juda qulay."
     },
     {
         id: "4",
-        title: "AirPods Pro 2 Gen",
+        title: "AirPods Pro 2 Gen (USB-C)",
         price: 2800000,
         category: "Aksessuarlar",
         image: "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=400&q=80",
-        description: "Aktiv shovqinni so'ndirish (ANC) va shaffoflik rejimiga ega quloqchinlar."
+        description: "Aktiv shovqinni so'ndirish (ANC) va shaffoflik rejimi. MagSafe keysi bilan."
     }
 ];
 
 // STATE MANAGEMENT
-let products = DEFAULT_PRODUCTS;
-try {
-    const savedProds = localStorage.getItem('products');
-    if (savedProds) products = JSON.parse(savedProds);
-} catch (e) {
-    products = DEFAULT_PRODUCTS;
-}
-
-let currentUser = null;
-try {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) currentUser = JSON.parse(savedUser);
-} catch (e) {
-    currentUser = null;
-}
-
-function getCartStorageKey() {
-    if (currentUser && currentUser.phone) {
-        const cleanPhone = currentUser.phone.replace(/\D/g, '');
-        return 'cart_' + (cleanPhone || currentUser.id);
-    } else if (currentUser && currentUser.id) {
-        return 'cart_' + currentUser.id;
-    }
-    return 'cart_guest';
-}
-
+let products = [];
 let cart = [];
-function loadCartForCurrentUser() {
-    try {
-        const key = getCartStorageKey();
-        const savedCart = localStorage.getItem(key);
-        cart = savedCart ? JSON.parse(savedCart) : [];
-    } catch (e) {
-        cart = [];
-    }
-    if (typeof updateCartUI === 'function') {
-        updateCartUI();
-    }
-}
-
-let orders = [];
-let selectedCategory = 'Barchasi';
+let currentUser = null;
+let currentCategory = 'Barchasi';
 let searchQuery = '';
+let selectedAvatar = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
 let isAdminLoggedIn = false;
-let selectedDetailProduct = null;
+let currentDetailProduct = null;
 let selectedInstallmentMonths = 3;
-let selectedAvatarUrl = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
-let cartPaymentType = 'cash';
+let cartPaymentType = 'cash'; // 'cash' or 'installment'
 let cartInstallmentMonths = 3;
 
 // DOM ELEMENTS
-let splashScreen, appContainer, productsGrid, categoriesContainer, searchInput,
-    cartBtn, cartBadge, cartModal, closeCartBtn, cartItemsContainer,
-    cartEmptyState, cartFooter, cartTotalPrice, submitOrderBtn, customerName,
-    customerPhone, customerAddress, userProfileBadge, userHeaderAvatar, userHeaderName,
-    userHeaderId, authModal, authNameInput, authPhoneInput, submitAuthBtn,
-    userProfileModal, closeUserProfileBtn, profileModalAvatar, profileModalName,
-    profileModalId, profileModalPhone, profileModalOrdersCount, logoutUserBtn,
-    productDetailModal, closeDetailModalBtn, detailProdImg, detailProdCategory,
-    detailProdTitle, detailProdPrice, detailProdDesc, instPrice3, instPrice6,
-    instPrice12, selectedInstMonthText, selectedInstMonthlyPrice, addCartCashBtn,
-    addCartInstallmentBtn, adminBtn, adminBanner, adminLoginModal, closeAdminLoginBtn,
-    adminPinInput, loginAdminSubmitBtn, adminLoginError, openAddProductModalBtn,
-    openOrdersBtn, logoutAdminBtn, productModal, closeProductModalBtn, saveProductBtn,
-    ordersModal, closeOrdersBtn, ordersListContainer, ordersCountBadge, toast;
+const splashScreen = document.getElementById('splashScreen');
+const appContainer = document.getElementById('appContainer');
+const productsGrid = document.getElementById('productsGrid');
+const categoriesContainer = document.getElementById('categoriesContainer');
+const searchInput = document.getElementById('searchInput');
+const cartBtn = document.getElementById('cartBtn');
+const cartBadge = document.getElementById('cartBadge');
+const cartModal = document.getElementById('cartModal');
+const closeCartBtn = document.getElementById('closeCartBtn');
+const cartItemsContainer = document.getElementById('cartItemsContainer');
+const cartEmptyState = document.getElementById('cartEmptyState');
+const cartTotalPrice = document.getElementById('cartTotalPrice');
+const submitOrderBtn = document.getElementById('submitOrderBtn');
+const adminBtn = document.getElementById('adminBtn');
+const adminBanner = document.getElementById('adminBanner');
+const openAddProductModalBtn = document.getElementById('openAddProductModalBtn');
+const logoutAdminBtn = document.getElementById('logoutAdminBtn');
 
-function bindDOMElements() {
-    splashScreen = document.getElementById('splashScreen');
-    appContainer = document.getElementById('appContainer');
-    productsGrid = document.getElementById('productsGrid');
-    categoriesContainer = document.getElementById('categoriesContainer');
-    searchInput = document.getElementById('searchInput');
-    cartBtn = document.getElementById('cartBtn');
-    cartBadge = document.getElementById('cartBadge');
-    cartModal = document.getElementById('cartModal');
-    closeCartBtn = document.getElementById('closeCartBtn');
-    cartItemsContainer = document.getElementById('cartItemsContainer');
-    cartEmptyState = document.getElementById('cartEmptyState');
-    cartFooter = document.getElementById('cartFooter');
-    cartTotalPrice = document.getElementById('cartTotalPrice');
-    submitOrderBtn = document.getElementById('submitOrderBtn');
-    customerName = document.getElementById('customerName');
-    customerPhone = document.getElementById('customerPhone');
-    customerAddress = document.getElementById('customerAddress');
+// MODALS
+const adminLoginModal = document.getElementById('adminLoginModal');
+const closeAdminLoginBtn = document.getElementById('closeAdminLoginBtn');
+const loginAdminSubmitBtn = document.getElementById('loginAdminSubmitBtn');
+const adminPinInput = document.getElementById('adminPinInput');
+const adminLoginError = document.getElementById('adminLoginError');
 
-    userProfileBadge = document.getElementById('userProfileBadge');
-    userHeaderAvatar = document.getElementById('userHeaderAvatar');
-    userHeaderName = document.getElementById('userHeaderName');
-    userHeaderId = document.getElementById('userHeaderId');
-    authModal = document.getElementById('authModal');
-    authNameInput = document.getElementById('authNameInput');
-    authPhoneInput = document.getElementById('authPhoneInput');
-    submitAuthBtn = document.getElementById('submitAuthBtn');
-    userProfileModal = document.getElementById('userProfileModal');
-    closeUserProfileBtn = document.getElementById('closeUserProfileBtn');
-    profileModalAvatar = document.getElementById('profileModalAvatar');
-    profileModalName = document.getElementById('profileModalName');
-    profileModalId = document.getElementById('profileModalId');
-    profileModalPhone = document.getElementById('profileModalPhone');
-    profileModalOrdersCount = document.getElementById('profileModalOrdersCount');
-    logoutUserBtn = document.getElementById('logoutUserBtn');
+const productModal = document.getElementById('productModal');
+const closeProductModalBtn = document.getElementById('closeProductModalBtn');
+const saveProductBtn = document.getElementById('saveProductBtn');
+const productModalTitle = document.getElementById('productModalTitle');
+const editProductId = document.getElementById('editProductId');
+const prodTitle = document.getElementById('prodTitle');
+const prodPrice = document.getElementById('prodPrice');
+const prodCategory = document.getElementById('prodCategory');
+const prodImage = document.getElementById('prodImage');
+const prodDesc = document.getElementById('prodDesc');
 
-    productDetailModal = document.getElementById('productDetailModal');
-    closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
-    detailProdImg = document.getElementById('detailProdImg');
-    detailProdCategory = document.getElementById('detailProdCategory');
-    detailProdTitle = document.getElementById('detailProdTitle');
-    detailProdPrice = document.getElementById('detailProdPrice');
-    detailProdDesc = document.getElementById('detailProdDesc');
-    instPrice3 = document.getElementById('instPrice3');
-    instPrice6 = document.getElementById('instPrice6');
-    instPrice12 = document.getElementById('instPrice12');
-    selectedInstMonthText = document.getElementById('selectedInstMonthText');
-    selectedInstMonthlyPrice = document.getElementById('selectedInstMonthlyPrice');
-    addCartCashBtn = document.getElementById('addCartCashBtn');
-    addCartInstallmentBtn = document.getElementById('addCartInstallmentBtn');
+const authModal = document.getElementById('authModal');
+const authNameInput = document.getElementById('authNameInput');
+const authPhoneInput = document.getElementById('authPhoneInput');
+const submitAuthBtn = document.getElementById('submitAuthBtn');
 
-    adminBtn = document.getElementById('adminBtn');
-    adminBanner = document.getElementById('adminBanner');
-    adminLoginModal = document.getElementById('adminLoginModal');
-    closeAdminLoginBtn = document.getElementById('closeAdminLoginBtn');
-    adminPinInput = document.getElementById('adminPinInput');
-    loginAdminSubmitBtn = document.getElementById('loginAdminSubmitBtn');
-    adminLoginError = document.getElementById('adminLoginError');
-    openAddProductModalBtn = document.getElementById('openAddProductModalBtn');
-    openOrdersBtn = document.getElementById('openOrdersBtn');
-    logoutAdminBtn = document.getElementById('logoutAdminBtn');
-    productModal = document.getElementById('productModal');
-    closeProductModalBtn = document.getElementById('closeProductModalBtn');
-    saveProductBtn = document.getElementById('saveProductBtn');
-    ordersModal = document.getElementById('ordersModal');
-    closeOrdersBtn = document.getElementById('closeOrdersBtn');
-    ordersListContainer = document.getElementById('ordersListContainer');
-    ordersCountBadge = document.getElementById('ordersCountBadge');
-    toast = document.getElementById('toast');
-}
+const userProfileBadge = document.getElementById('userProfileBadge');
+const userHeaderAvatar = document.getElementById('userHeaderAvatar');
+const userHeaderName = document.getElementById('userHeaderName');
+const userHeaderId = document.getElementById('userHeaderId');
+
+const userProfileModal = document.getElementById('userProfileModal');
+const closeUserProfileBtn = document.getElementById('closeUserProfileBtn');
+const profileModalAvatar = document.getElementById('profileModalAvatar');
+const profileModalName = document.getElementById('profileModalName');
+const profileModalId = document.getElementById('profileModalId');
+const profileModalPhone = document.getElementById('profileModalPhone');
+const profileModalOrdersCount = document.getElementById('profileModalOrdersCount');
+const logoutUserBtn = document.getElementById('logoutUserBtn');
+
+const productDetailModal = document.getElementById('productDetailModal');
+const closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
+const detailProdImg = document.getElementById('detailProdImg');
+const detailProdCategory = document.getElementById('detailProdCategory');
+const detailProdTitle = document.getElementById('detailProdTitle');
+const detailProdPrice = document.getElementById('detailProdPrice');
+const detailProdDesc = document.getElementById('detailProdDesc');
+const instPrice3 = document.getElementById('instPrice3');
+const instPrice6 = document.getElementById('instPrice6');
+const instPrice12 = document.getElementById('instPrice12');
+const selectedInstMonthText = document.getElementById('selectedInstMonthText');
+const selectedInstMonthlyPrice = document.getElementById('selectedInstMonthlyPrice');
+const addCartCashBtn = document.getElementById('addCartCashBtn');
+const addCartInstallmentBtn = document.getElementById('addCartInstallmentBtn');
+const detailAdminActions = document.getElementById('detailAdminActions');
+const detailEditBtn = document.getElementById('detailEditBtn');
+const detailDeleteBtn = document.getElementById('detailDeleteBtn');
+
+const orderSuccessModal = document.getElementById('orderSuccessModal');
+const closeOrderSuccessBtn = document.getElementById('closeOrderSuccessBtn');
+const successOrderNumberBadge = document.getElementById('successOrderNumberBadge');
+
+const toast = document.getElementById('toast');
 
 // INIT APP
 function initApp() {
-    if (window._appInitialized) return;
-    window._appInitialized = true;
-
-    bindDOMElements();
+    initTelegramWebApp();
+    loadStoredData();
+    setupEventListeners();
 
     setTimeout(() => {
         if (splashScreen) {
             splashScreen.style.opacity = '0';
-            splashScreen.style.display = 'none';
+            splashScreen.style.visibility = 'hidden';
         }
         if (appContainer) appContainer.classList.remove('hidden');
 
-        const guestId = localStorage.getItem('guestDeviceId') || ('#ID-' + Math.floor(100000 + Math.random() * 900000));
-        localStorage.setItem('guestDeviceId', guestId);
-
-        if (currentUser) {
-            updateUserHeaderUI();
-            syncUserWithBackend(currentUser);
-        } else {
-            if (authModal) authModal.classList.remove('hidden');
-            syncUserWithBackend({
-                id: guestId,
-                name: 'Yangi Tashrif Buyuruvchi',
-                phone: 'Ilovani ochdi (Ochiq)',
-                avatar: selectedAvatarUrl
-            });
-        }
+        checkUserAuth();
     }, 600);
 
     renderCategories();
     renderProducts();
-    loadCartForCurrentUser();
-    fetchBackendProducts();
+    updateCartUI();
+    startRealtimeProductSync();
+}
 
-    setInterval(() => {
-        fetchBackendProducts();
-    }, 2000);
+function initTelegramWebApp() {
+    if (window.Telegram && window.Telegram.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+
+        document.body.classList.add('telegram-dark');
+
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user && !currentUser) {
+            const tgUser = tg.initDataUnsafe.user;
+            currentUser = {
+                id: tgUser.id ? ('#ID-' + String(tgUser.id).slice(-6)) : generateUserId(),
+                name: (tgUser.first_name + ' ' + (tgUser.last_name || '')).trim(),
+                phone: 'Telegram Orqali',
+                avatar: tgUser.photo_url || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png'
+            };
+            saveUser();
+        }
+    }
+}
+
+function generateUserId() {
+    return '#ID-' + Math.floor(100000 + Math.random() * 900000);
+}
+
+function loadStoredData() {
+    try {
+        const savedProducts = localStorage.getItem('tasanno_products');
+        if (savedProducts) {
+            products = JSON.parse(savedProducts);
+        } else {
+            products = [...DEFAULT_PRODUCTS];
+            saveProducts();
+        }
+    } catch (e) {
+        products = [...DEFAULT_PRODUCTS];
+    }
+
+    try {
+        const savedCart = localStorage.getItem('tasanno_cart');
+        if (savedCart) cart = JSON.parse(savedCart);
+    } catch (e) { cart = []; }
+
+    try {
+        const savedUser = localStorage.getItem('tasanno_user');
+        if (savedUser) currentUser = JSON.parse(savedUser);
+    } catch (e) { currentUser = null; }
+
+    try {
+        const savedAdmin = localStorage.getItem('tasanno_admin_logged');
+        if (savedAdmin === 'true') isAdminLoggedIn = true;
+    } catch (e) { isAdminLoggedIn = false; }
+}
+
+function saveProducts() {
+    localStorage.setItem('tasanno_products', JSON.stringify(products));
+}
+
+function saveCart() {
+    localStorage.setItem('tasanno_cart', JSON.stringify(cart));
+}
+
+function saveUser() {
+    localStorage.setItem('tasanno_user', JSON.stringify(currentUser));
+    if (currentUser) {
+        fetch(`${API_BASE_URL}/api/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(currentUser)
+        }).catch(e => console.warn("Backend user registration error:", e));
+    }
 }
 
 let previousProductsHash = "";
 
-async function fetchBackendProducts() {
+async function syncProductsFromBackend() {
     try {
-        const response = await fetch(`${API_BASE_URL}/api/products`, { cache: 'no-cache' });
-        if (response.ok) {
-            const data = await response.json();
-            if (Array.isArray(data)) {
-                const currentHash = JSON.stringify(data);
-                if (currentHash !== previousProductsHash) {
-                    previousProductsHash = currentHash;
-                    products = data;
-                    localStorage.setItem('products', JSON.stringify(products));
-                    renderProducts();
-                }
+        const resp = await fetch(`${API_BASE_URL}/api/products`, { cache: 'no-cache' });
+        if (!resp.ok) return;
+        const backendProducts = await resp.json();
+        if (Array.isArray(backendProducts) && backendProducts.length > 0) {
+            const currentHash = JSON.stringify(backendProducts);
+            if (currentHash !== previousProductsHash) {
+                previousProductsHash = currentHash;
+                products = backendProducts;
+                saveProducts();
+                renderCategories();
+                renderProducts();
             }
         }
-    } catch (e) { console.warn("Backend products fetch failed:", e); }
+    } catch (e) {}
 }
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initApp);
-} else {
-    initApp();
+function startRealtimeProductSync() {
+    syncProductsFromBackend();
+    setInterval(syncProductsFromBackend, 2000);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function checkUserAuth() {
+    if (!currentUser) {
+        if (authModal) authModal.classList.remove('hidden');
+        if (userHeaderName) userHeaderName.textContent = 'Kiring';
+        if (userHeaderId) userHeaderId.textContent = '#ID-...';
+        if (userHeaderAvatar) userHeaderAvatar.src = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+    } else {
+        if (authModal) authModal.classList.add('hidden');
+        if (userHeaderName) userHeaderName.textContent = currentUser.name || 'Mijoz';
+        if (userHeaderId) userHeaderId.textContent = currentUser.id || '#ID-000000';
+        if (userHeaderAvatar) userHeaderAvatar.src = currentUser.avatar || selectedAvatar;
+
+        const custName = document.getElementById('customerName');
+        const custPhone = document.getElementById('customerPhone');
+        if (custName) custName.value = currentUser.name || '';
+        if (custPhone && currentUser.phone && !currentUser.phone.includes('Telegram')) {
+            custPhone.value = currentUser.phone;
+        }
+
+        saveUser();
+    }
+}
+
+function setupEventListeners() {
     searchInput?.addEventListener('input', (e) => {
         searchQuery = e.target.value.toLowerCase().trim();
         renderProducts();
     });
 
-    cartBtn?.addEventListener('click', () => cartModal?.classList.remove('hidden'));
-    closeCartBtn?.addEventListener('click', () => cartModal?.classList.add('hidden'));
+    cartBtn?.addEventListener('click', () => {
+        if (cartModal) cartModal.classList.remove('hidden');
+    });
 
-    userProfileBadge?.addEventListener('click', () => {
-        if (currentUser) {
-            openUserProfileModal();
-        } else {
-            authModal?.classList.remove('hidden');
+    closeCartBtn?.addEventListener('click', () => {
+        if (cartModal) cartModal.classList.add('hidden');
+    });
+
+    adminBtn?.addEventListener('click', () => {
+        if (isAdminLoggedIn) {
+            showToast("Siz allaqachon Adminsiz!");
+        } else if (adminLoginModal) {
+            adminLoginModal.classList.remove('hidden');
+            if (adminPinInput) adminPinInput.value = '';
+            if (adminLoginError) adminLoginError.classList.add('hidden');
         }
     });
 
-    closeUserProfileBtn?.addEventListener('click', () => userProfileModal?.classList.add('hidden'));
-    attachPhoneMask(authPhoneInput);
-    attachPhoneMask(customerPhone);
-    logoutUserBtn?.addEventListener('click', handleUserLogout);
-    submitAuthBtn?.addEventListener('click', handleAuthSubmit);
+    closeAdminLoginBtn?.addEventListener('click', () => {
+        if (adminLoginModal) adminLoginModal.classList.add('hidden');
+    });
 
-    closeDetailModalBtn?.addEventListener('click', () => productDetailModal?.classList.add('hidden'));
+    loginAdminSubmitBtn?.addEventListener('click', handleAdminLogin);
+    adminPinInput?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleAdminLogin();
+    });
+
+    logoutAdminBtn?.addEventListener('click', () => {
+        isAdminLoggedIn = false;
+        localStorage.removeItem('tasanno_admin_logged');
+        updateAdminUI();
+        showToast("Admin rejimidan chiqildi");
+    });
+
+    openAddProductModalBtn?.addEventListener('click', () => {
+        openProductModalForAdd();
+    });
+
+    closeProductModalBtn?.addEventListener('click', () => {
+        if (productModal) productModal.classList.add('hidden');
+    });
+
+    saveProductBtn?.addEventListener('click', handleSaveProduct);
+
+    document.querySelectorAll('.avatar-option').forEach(img => {
+        img.addEventListener('click', () => {
+            document.querySelectorAll('.avatar-option').forEach(a => a.classList.remove('selected'));
+            img.classList.add('selected');
+            selectedAvatar = img.getAttribute('data-avatar');
+        });
+    });
+
+    submitAuthBtn?.addEventListener('click', handleUserSubmitAuth);
+
+    userProfileBadge?.addEventListener('click', () => {
+        if (!currentUser) {
+            checkUserAuth();
+        } else {
+            openUserProfileModal();
+        }
+    });
+
+    closeUserProfileBtn?.addEventListener('click', () => {
+        if (userProfileModal) userProfileModal.classList.add('hidden');
+    });
+
+    logoutUserBtn?.addEventListener('click', () => {
+        if (confirm("Rostdan ham profildan chiqib, boshqa telefon raqami bilan kirmoqchisiz?")) {
+            currentUser = null;
+            localStorage.removeItem('tasanno_user');
+            if (userProfileModal) userProfileModal.classList.add('hidden');
+            checkUserAuth();
+            showToast("Profildan chiqildi");
+        }
+    });
+
+    closeDetailModalBtn?.addEventListener('click', () => {
+        if (productDetailModal) productDetailModal.classList.add('hidden');
+    });
+
+    document.querySelectorAll('.installment-options .installment-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.installment-options .installment-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedInstallmentMonths = parseInt(btn.getAttribute('data-months'));
+            updateInstallmentCalculator();
+        });
+    });
 
     addCartCashBtn?.addEventListener('click', () => {
-        if (!selectedDetailProduct) return;
-        addToCart(selectedDetailProduct.id);
-        productDetailModal?.classList.add('hidden');
+        if (currentDetailProduct) {
+            addToCart(currentDetailProduct.id, 1, 'cash');
+            if (productDetailModal) productDetailModal.classList.add('hidden');
+            if (cartModal) cartModal.classList.remove('hidden');
+        }
     });
 
-    closeAdminLoginBtn?.addEventListener('click', () => adminLoginModal?.classList.add('hidden'));
-    loginAdminSubmitBtn?.addEventListener('click', handleAdminLogin);
-
-    closeProductModalBtn?.addEventListener('click', () => productModal?.classList.add('hidden'));
-    saveProductBtn?.addEventListener('click', handleSaveProduct);
-    submitOrderBtn?.addEventListener('click', handleSubmitOrder);
-});
-
-function updateUserHeaderUI() {
-    if (!currentUser) return;
-    if (userHeaderAvatar) userHeaderAvatar.src = currentUser.avatar;
-    if (userHeaderName) userHeaderName.textContent = currentUser.name;
-    if (userHeaderId) userHeaderId.textContent = currentUser.id;
-
-    if (customerName) customerName.value = currentUser.name;
-    if (customerPhone) customerPhone.value = currentUser.phone;
-}
-
-const UZ_PHONE_PREFIXES = ['90', '91', '93', '94', '95', '97', '98', '99', '88', '33', '50', '55', '77', '71', '78'];
-
-function cleanUzPhone(phoneStr) {
-    if (!phoneStr) return '';
-    let digits = phoneStr.replace(/\D/g, '');
-    if (digits.startsWith('998')) digits = digits.slice(3);
-    return digits.slice(0, 9);
-}
-
-function isValidUzPhone(phoneStr) {
-    const digits = cleanUzPhone(phoneStr);
-    if (digits.length !== 9) return false;
-    return UZ_PHONE_PREFIXES.includes(digits.slice(0, 2));
-}
-
-function formatUzPhone(digits) {
-    if (!digits) return '+998 ';
-    let res = '+998';
-    if (digits.length > 0) res += ' (' + digits.slice(0, 2);
-    if (digits.length >= 2) res += ') ' + digits.slice(2, 5);
-    if (digits.length >= 5) res += '-' + digits.slice(5, 7);
-    if (digits.length >= 7) res += '-' + digits.slice(7, 9);
-    return res;
-}
-
-function attachPhoneMask(inputElement) {
-    if (!inputElement) return;
-    inputElement.addEventListener('input', (e) => {
-        const digits = cleanUzPhone(e.target.value);
-        e.target.value = formatUzPhone(digits);
+    addCartInstallmentBtn?.addEventListener('click', () => {
+        if (currentDetailProduct) {
+            addToCart(currentDetailProduct.id, 1, 'installment', selectedInstallmentMonths);
+            if (productDetailModal) productDetailModal.classList.add('hidden');
+            if (cartModal) cartModal.classList.remove('hidden');
+        }
     });
+
+    detailEditBtn?.addEventListener('click', () => {
+        if (currentDetailProduct) {
+            if (productDetailModal) productDetailModal.classList.add('hidden');
+            openProductModalForEdit(currentDetailProduct.id);
+        }
+    });
+
+    detailDeleteBtn?.addEventListener('click', () => {
+        if (currentDetailProduct && confirm("Rostdan ham ushbu mahsulotni o'chirmoqchisiz?")) {
+            deleteProduct(currentDetailProduct.id);
+            if (productDetailModal) productDetailModal.classList.add('hidden');
+        }
+    });
+
+    submitOrderBtn?.addEventListener('click', handleOrderSubmission);
+
+    closeOrderSuccessBtn?.addEventListener('click', () => {
+        if (orderSuccessModal) orderSuccessModal.classList.add('hidden');
+    });
+
+    updateAdminUI();
 }
 
-function handleAuthSubmit() {
-    const name = authNameInput.value.trim();
-    const phone = authPhoneInput.value.trim();
+function handleUserSubmitAuth() {
+    const name = authNameInput ? authNameInput.value.trim() : '';
+    const phone = authPhoneInput ? authPhoneInput.value.trim() : '';
 
     if (!name) {
-        showToast("Iltimos, Ismingizni kiriting!");
+        showToast("Iltimos, ismingizni kiriting!");
         return;
     }
 
-    if (!isValidUzPhone(phone)) {
-        showToast("Faqat to'g'ri O'zbekiston raqami (+998...) qabul qilinadi!");
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 9) {
+        showToast("Iltimos, to'liq telefon raqamingizni kiriting!");
         return;
     }
 
-    const cleanDigits = cleanUzPhone(phone);
-    const formattedPhone = formatUzPhone(cleanDigits);
+    const formattedPhone = phone.startsWith('+') ? phone : ('+998 ' + phone);
 
     currentUser = {
-        id: '#ID-' + Math.floor(100000 + Math.random() * 900000),
+        id: generateUserId(),
         name: name,
         phone: formattedPhone,
-        avatar: selectedAvatarUrl
+        avatar: selectedAvatar
     };
 
-    localStorage.setItem('currentUser', JSON.stringify(currentUser));
-    updateUserHeaderUI();
-    loadCartForCurrentUser();
-    syncUserWithBackend(currentUser);
-    authModal?.classList.add('hidden');
+    saveUser();
+    checkUserAuth();
     showToast(`Xush kelibsiz, ${name}!`);
 }
 
-async function syncUserWithBackend(userObj) {
-    if (!userObj) return;
-    try {
-        fetch(`${API_BASE_URL}/api/users`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(userObj)
-        }).catch(err => console.warn("User sync error:", err));
-    } catch (e) { console.warn("User sync error:", e); }
-}
-
 function openUserProfileModal() {
-    if (!currentUser) return;
-    if (profileModalAvatar) profileModalAvatar.src = currentUser.avatar;
-    if (profileModalName) profileModalName.textContent = currentUser.name;
-    if (profileModalId) profileModalId.textContent = `Mijoz ID: ${currentUser.id}`;
-    if (profileModalPhone) profileModalPhone.textContent = currentUser.phone;
-    if (userProfileModal) userProfileModal.classList.remove('hidden');
+    if (!currentUser || !userProfileModal) return;
+
+    if (profileModalAvatar) profileModalAvatar.src = currentUser.avatar || selectedAvatar;
+    if (profileModalName) profileModalName.textContent = currentUser.name || 'Mijoz';
+    if (profileModalId) profileModalId.textContent = `Mijoz ID: ${currentUser.id || '#ID-000000'}`;
+    if (profileModalPhone) profileModalPhone.textContent = currentUser.phone || 'Kiritilmagan';
+
+    let ordersCount = 0;
+    try {
+        const savedOrders = localStorage.getItem('tasanno_orders');
+        if (savedOrders) {
+            const ords = JSON.parse(savedOrders);
+            ordersCount = ords.filter(o => o.phone === currentUser.phone || o.userId === currentUser.id).length;
+        }
+    } catch(e){}
+
+    if (profileModalOrdersCount) profileModalOrdersCount.textContent = `${ordersCount} ta buyurtma`;
+
+    userProfileModal.classList.remove('hidden');
 }
 
-function handleUserLogout() {
-    localStorage.removeItem('currentUser');
-    currentUser = null;
-    if (userHeaderName) userHeaderName.textContent = 'Kiring';
-    if (userHeaderId) userHeaderId.textContent = '#ID-...';
-    if (userProfileModal) userProfileModal.classList.add('hidden');
-    if (authModal) authModal.classList.remove('hidden');
-    showToast("Profildan chiqildi");
+function handleAdminLogin() {
+    const pin = adminPinInput ? adminPinInput.value : '';
+    if (pin === ADMIN_PIN) {
+        isAdminLoggedIn = true;
+        localStorage.setItem('tasanno_admin_logged', 'true');
+        if (adminLoginModal) adminLoginModal.classList.add('hidden');
+        updateAdminUI();
+        showToast("Admin bo'lib tizimga kirdingiz!");
+    } else {
+        if (adminLoginError) adminLoginError.classList.remove('hidden');
+    }
+}
+
+function updateAdminUI() {
+    if (isAdminLoggedIn) {
+        if (adminBanner) adminBanner.classList.remove('hidden');
+    } else {
+        if (adminBanner) adminBanner.classList.add('hidden');
+    }
+    renderProducts();
 }
 
 function renderCategories() {
-    const categories = ['Barchasi', 'Smartfonlar', 'Kiyimlar', 'Aksessuarlar', 'Oziq-ovqat'];
     if (!categoriesContainer) return;
     categoriesContainer.innerHTML = '';
-    categories.forEach(cat => {
-        const chip = document.createElement('button');
-        chip.className = `category-chip ${cat === selectedCategory ? 'active' : ''}`;
+
+    const categoriesList = ['Barchasi', 'Smartfonlar', 'Kiyimlar', 'Aksessuarlar', 'Oziq-ovqat'];
+
+    categoriesList.forEach(cat => {
+        const chip = document.createElement('div');
+        chip.className = `category-chip ${currentCategory === cat ? 'active' : ''}`;
         chip.textContent = cat;
-        chip.onclick = () => {
-            selectedCategory = cat;
-            document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
+        chip.addEventListener('click', () => {
+            currentCategory = cat;
+            renderCategories();
             renderProducts();
-        };
+        });
         categoriesContainer.appendChild(chip);
     });
 }
@@ -410,15 +506,16 @@ function renderProducts() {
     if (!productsGrid) return;
     productsGrid.innerHTML = '';
 
-    const filtered = products.filter(p => {
-        const matchesCategory = selectedCategory === 'Barchasi' || p.category === selectedCategory;
-        const matchesSearch = p.title.toLowerCase().includes(searchQuery) || (p.description || '').toLowerCase().includes(searchQuery);
+    const filtered = products.filter(prod => {
+        const matchesCategory = (currentCategory === 'Barchasi') || (prod.category === currentCategory);
+        const matchesSearch = prod.title.toLowerCase().includes(searchQuery) ||
+                              (prod.description && prod.description.toLowerCase().includes(searchQuery));
         return matchesCategory && matchesSearch;
     });
 
     if (filtered.length === 0) {
         productsGrid.innerHTML = `
-            <div style="grid-column: 1 / -1;" class="empty-state">
+            <div class="empty-state" style="grid-column: 1/-1;">
                 <i class="fa-solid fa-box-open empty-icon"></i>
                 <p>Mahsulotlar topilmadi</p>
             </div>
@@ -426,214 +523,452 @@ function renderProducts() {
         return;
     }
 
-    filtered.forEach(p => {
+    filtered.forEach(prod => {
         const card = document.createElement('div');
         card.className = 'product-card';
+
         card.innerHTML = `
-            <div class="product-img-wrapper" onclick="openProductDetail('${p.id}')">
-                <img src="${p.image}" class="product-img" alt="${p.title}" onerror="this.src='https://via.placeholder.com/300x300?text=Rasm+Mavjud+Emas'">
-                <span class="product-category-tag">${p.category}</span>
+            <div class="product-img-wrapper" onclick="openProductDetailModal('${prod.id}')" style="cursor:pointer;">
+                <img src="${prod.image}" class="product-img" alt="${prod.title}" onerror="this.src='https://via.placeholder.com/300'">
+                <span class="product-category-tag">${prod.category || 'Barchasi'}</span>
             </div>
-            <div class="product-info" onclick="openProductDetail('${p.id}')">
-                <h4 class="product-title">${p.title}</h4>
-                <div class="product-price">${formatPrice(p.price)} so'm</div>
-                <div class="product-actions" onclick="event.stopPropagation()">
-                    <button class="btn-add-cart" onclick="addToCart('${p.id}')">
-                        <i class="fa-solid fa-cart-plus"></i> Savatchaga
+            <div class="product-info">
+                <h3 class="product-title" onclick="openProductDetailModal('${prod.id}')" style="cursor:pointer;">${prod.title}</h3>
+                <div class="product-price">${formatPrice(prod.price)} so'm</div>
+                <div class="product-actions">
+                    <button class="btn-add-cart" onclick="openProductDetailModal('${prod.id}')">
+                        <i class="fa-solid fa-eye"></i> Ko'rish / Olish
                     </button>
+                    ${isAdminLoggedIn ? `
+                        <button class="btn-admin-edit" onclick="openProductModalForEdit('${prod.id}')" title="Tahrirlash">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button class="btn-admin-del" onclick="deleteProduct('${prod.id}')" title="O'chirish">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    ` : ''}
                 </div>
             </div>
         `;
+
         productsGrid.appendChild(card);
     });
 }
 
-function openProductDetail(productId) {
-    const p = products.find(prod => prod.id === productId);
-    if (!p) return;
+function openProductDetailModal(id) {
+    const prod = products.find(p => p.id === id);
+    if (!prod) return;
 
-    selectedDetailProduct = p;
-    if (detailProdImg) detailProdImg.src = p.image;
-    if (detailProdCategory) detailProdCategory.textContent = p.category;
-    if (detailProdTitle) detailProdTitle.textContent = p.title;
-    if (detailProdPrice) detailProdPrice.textContent = `${formatPrice(p.price)} so'm`;
-    if (detailProdDesc) detailProdDesc.textContent = p.description;
+    currentDetailProduct = prod;
+    selectedInstallmentMonths = 3;
 
-    const p3 = Math.ceil(p.price / 3);
-    const p6 = Math.ceil(p.price / 6);
-    const p12 = Math.ceil(p.price / 12);
+    if (detailProdImg) detailProdImg.src = prod.image;
+    if (detailProdCategory) detailProdCategory.textContent = prod.category || 'Barchasi';
+    if (detailProdTitle) detailProdTitle.textContent = prod.title;
+    if (detailProdPrice) detailProdPrice.textContent = `${formatPrice(prod.price)} so'm`;
+    if (detailProdDesc) detailProdDesc.textContent = prod.description || "Ushbu mahsulot do'konimizda mavjud. Qulay shartlarda xarid qilishingiz mumkin.";
 
-    if (instPrice3) instPrice3.textContent = `${formatPrice(p3)} so'm/oy`;
-    if (instPrice6) instPrice6.textContent = `${formatPrice(p6)} so'm/oy`;
-    if (instPrice12) instPrice12.textContent = `${formatPrice(p12)} so'm/oy`;
+    if (isAdminLoggedIn && detailAdminActions) {
+        detailAdminActions.classList.remove('hidden');
+    } else if (detailAdminActions) {
+        detailAdminActions.classList.add('hidden');
+    }
 
-    updateInstallmentSummary();
+    document.querySelectorAll('.installment-options .installment-btn').forEach(b => {
+        if (b.getAttribute('data-months') === '3') b.classList.add('active');
+        else b.classList.remove('active');
+    });
+
+    updateInstallmentCalculator();
+
     if (productDetailModal) productDetailModal.classList.remove('hidden');
 }
 
-function updateInstallmentSummary() {
-    if (!selectedDetailProduct) return;
-    const price = selectedDetailProduct.price;
-    const monthly = Math.ceil(price / selectedInstallmentMonths);
+function updateInstallmentCalculator() {
+    if (!currentDetailProduct) return;
+
+    const price = currentDetailProduct.price;
+
+    const monthly3 = Math.round(price / 3);
+    const monthly6 = Math.round((price * 1.05) / 6);
+    const monthly12 = Math.round((price * 1.12) / 12);
+
+    if (instPrice3) instPrice3.textContent = `${formatPrice(monthly3)} so'm/oy`;
+    if (instPrice6) instPrice6.textContent = `${formatPrice(monthly6)} so'm/oy`;
+    if (instPrice12) instPrice12.textContent = `${formatPrice(monthly12)} so'm/oy`;
+
+    let activeMonthly = monthly3;
+    if (selectedInstallmentMonths === 6) activeMonthly = monthly6;
+    if (selectedInstallmentMonths === 12) activeMonthly = monthly12;
 
     if (selectedInstMonthText) selectedInstMonthText.textContent = `${selectedInstallmentMonths} Oy`;
-    if (selectedInstMonthlyPrice) selectedInstMonthlyPrice.textContent = `${formatPrice(monthly)} so'm/oy`;
+    if (selectedInstMonthlyPrice) selectedInstMonthlyPrice.textContent = `${formatPrice(activeMonthly)} so'm/oy`;
 }
 
-function addToCart(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
+function addToCart(productId, quantity = 1, paymentType = 'cash', installmentMonths = 3) {
+    const prod = products.find(p => p.id === productId);
+    if (!prod) return;
 
-    const existingItem = cart.find(item => item.id === productId);
-    if (existingItem) {
-        existingItem.quantity += 1;
+    const existingIndex = cart.findIndex(item => item.id === productId && item.paymentType === paymentType && item.installmentMonths === installmentMonths);
+
+    if (existingIndex > -1) {
+        cart[existingIndex].quantity += quantity;
     } else {
-        cart.push({ ...product, quantity: 1 });
+        cart.push({
+            id: prod.id,
+            title: prod.title,
+            price: prod.price,
+            image: prod.image,
+            quantity: quantity,
+            paymentType: paymentType,
+            installmentMonths: installmentMonths
+        });
     }
 
     saveCart();
     updateCartUI();
-    showToast(`${product.title} savatchaga qo'shildi!`);
+    showToast("Savatchaga qo'shildi!");
 }
 
 function updateCartUI() {
-    if (!cartBadge) return;
     const totalCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-    cartBadge.textContent = totalCount;
+    if (cartBadge) cartBadge.textContent = totalCount;
+
+    if (!cartItemsContainer) return;
+    cartItemsContainer.innerHTML = '';
 
     if (cart.length === 0) {
-        if (cartItemsContainer) cartItemsContainer.innerHTML = '';
         if (cartEmptyState) cartEmptyState.classList.remove('hidden');
-        if (cartFooter) cartFooter.classList.add('hidden');
-    } else {
-        if (cartEmptyState) cartEmptyState.classList.add('hidden');
-        if (cartFooter) cartFooter.classList.remove('hidden');
-        if (cartItemsContainer) {
-            cartItemsContainer.innerHTML = '';
-            let totalPrice = 0;
-            cart.forEach(item => {
-                const itemTotal = item.price * item.quantity;
-                totalPrice += itemTotal;
-
-                const div = document.createElement('div');
-                div.className = 'cart-item';
-                div.innerHTML = `
-                    <img src="${item.image}" class="cart-item-img" alt="${item.title}">
-                    <div class="cart-item-details">
-                        <div class="cart-item-title">${item.title}</div>
-                        <div class="cart-item-price">${formatPrice(item.price)} so'm</div>
-                    </div>
-                    <div class="cart-quantity-controls">
-                        <button class="qty-btn" onclick="changeQty('${item.id}', -1)">-</button>
-                        <span>${item.quantity}</span>
-                        <button class="qty-btn" onclick="changeQty('${item.id}', 1)">+</button>
-                    </div>
-                `;
-                cartItemsContainer.appendChild(div);
-            });
-
-            if (cartTotalPrice) cartTotalPrice.textContent = `${formatPrice(totalPrice)} so'm`;
-        }
+        if (cartTotalPrice) cartTotalPrice.textContent = "0 so'm";
+        return;
     }
+
+    if (cartEmptyState) cartEmptyState.classList.add('hidden');
+
+    let totalSum = 0;
+
+    cart.forEach(item => {
+        let itemTotal = item.price * item.quantity;
+        if (item.paymentType === 'installment') {
+            if (item.installmentMonths === 6) itemTotal = Math.round((item.price * 1.05) * item.quantity);
+            if (item.installmentMonths === 12) itemTotal = Math.round((item.price * 1.12) * item.quantity);
+        }
+
+        totalSum += itemTotal;
+
+        const cartRow = document.createElement('div');
+        cartRow.className = 'cart-item';
+
+        const paymentTag = item.paymentType === 'installment'
+            ? `<span style="font-size:10px; background:rgba(0,168,255,0.15); color:var(--primary-color); padding:2px 6px; border-radius:6px; font-weight:bold;">${item.installmentMonths} Oy Bo'lib to'lash</span>`
+            : `<span style="font-size:10px; background:rgba(16,185,129,0.15); color:var(--success-color); padding:2px 6px; border-radius:6px; font-weight:bold;">Naqd</span>`;
+
+        cartRow.innerHTML = `
+            <img src="${item.image}" class="cart-item-img" alt="${item.title}">
+            <div class="cart-item-details">
+                <div class="cart-item-title">${item.title}</div>
+                <div>${paymentTag}</div>
+                <div class="cart-item-price">${formatPrice(item.price)} so'm</div>
+            </div>
+            <div class="cart-quantity-controls">
+                <button class="qty-btn" onclick="changeCartQty('${item.id}', '${item.paymentType}', ${item.installmentMonths}, -1)">-</button>
+                <span>${item.quantity}</span>
+                <button class="qty-btn" onclick="changeCartQty('${item.id}', '${item.paymentType}', ${item.installmentMonths}, 1)">+</button>
+            </div>
+        `;
+
+        cartItemsContainer.appendChild(cartRow);
+    });
+
+    if (cartTotalPrice) cartTotalPrice.textContent = `${formatPrice(totalSum)} so'm`;
+    updateCartInstallmentCalculator();
 }
 
-function changeQty(productId, delta) {
-    const item = cart.find(i => i.id === productId);
-    if (!item) return;
+function changeCartQty(id, paymentType, installmentMonths, delta) {
+    const index = cart.findIndex(i => i.id === id && i.paymentType === paymentType && i.installmentMonths === installmentMonths);
+    if (index === -1) return;
 
-    item.quantity += delta;
-    if (item.quantity <= 0) {
-        cart = cart.filter(i => i.id !== productId);
+    cart[index].quantity += delta;
+    if (cart[index].quantity <= 0) {
+        cart.splice(index, 1);
     }
+
     saveCart();
     updateCartUI();
 }
 
-function saveCart() {
-    try {
-        const key = getCartStorageKey();
-        localStorage.setItem(key, JSON.stringify(cart));
-    } catch (e) {}
-}
+function selectCartPaymentType(type) {
+    cartPaymentType = type;
+    const cashBtn = document.getElementById('payCashTabBtn');
+    const instBtn = document.getElementById('payInstallmentTabBtn');
+    const instOptions = document.getElementById('cartInstallmentOptions');
 
-function handleAdminLogin() {
-    const pin = adminPinInput.value.trim();
-    if (pin === ADMIN_PIN) {
-        isAdminLoggedIn = true;
-        adminLoginModal?.classList.add('hidden');
-        adminBanner?.classList.remove('hidden');
-        renderProducts();
-        showToast('Admin rejimiga muvaffaqiyatli kirildi!');
+    if (type === 'cash') {
+        if (cashBtn) cashBtn.classList.add('active');
+        if (instBtn) instBtn.classList.remove('active');
+        if (instOptions) instOptions.classList.add('hidden');
+    } else {
+        if (cashBtn) cashBtn.classList.remove('active');
+        if (instBtn) instBtn.classList.add('active');
+        if (instOptions) instOptions.classList.remove('hidden');
+        updateCartInstallmentCalculator();
     }
 }
 
-function handleSaveProduct() {
-    const title = document.getElementById('prodTitle').value.trim();
-    const price = parseFloat(document.getElementById('prodPrice').value);
-    const category = document.getElementById('prodCategory').value;
-    const image = document.getElementById('prodImage').value.trim() || 'https://via.placeholder.com/300';
-    const description = document.getElementById('prodDesc').value.trim();
-
-    if (!title || isNaN(price)) return;
-
-    const newProd = { id: Date.now().toString(), title, price, category, image, description };
-    products.unshift(newProd);
-
-    try {
-        fetch(`${API_BASE_URL}/api/products`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newProd)
-        });
-    } catch (e) {}
-
-    localStorage.setItem('products', JSON.stringify(products));
-    renderProducts();
-    productModal?.classList.add('hidden');
+function selectCartInstallmentMonths(months) {
+    cartInstallmentMonths = months;
+    [3, 6, 12].forEach(m => {
+        const btn = document.getElementById(`cartInstBtn${m}`);
+        if (btn) {
+            if (m === months) btn.classList.add('active');
+            else btn.classList.remove('active');
+        }
+    });
+    updateCartInstallmentCalculator();
 }
 
-async function handleSubmitOrder() {
-    const name = customerName?.value.trim();
-    const phone = customerPhone?.value.trim();
-    const address = customerAddress?.value.trim();
+function updateCartInstallmentCalculator() {
+    let rawTotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    if (!name || !phone) {
-        showToast("Iltimos, Ismingiz va Telefon raqamingizni kiriting!");
+    const m3 = Math.round(rawTotal / 3);
+    const m6 = Math.round((rawTotal * 1.05) / 6);
+    const m12 = Math.round((rawTotal * 1.12) / 12);
+
+    const p3 = document.getElementById('cartInstPrice3');
+    const p6 = document.getElementById('cartInstPrice6');
+    const p12 = document.getElementById('cartInstPrice12');
+
+    if (p3) p3.textContent = `${formatPrice(m3)} so'm/oy`;
+    if (p6) p6.textContent = `${formatPrice(m6)} so'm/oy`;
+    if (p12) p12.textContent = `${formatPrice(m12)} so'm/oy`;
+
+    let activeMonthly = m3;
+    if (cartInstallmentMonths === 6) activeMonthly = m6;
+    if (cartInstallmentMonths === 12) activeMonthly = m12;
+
+    const monthlyText = document.getElementById('cartMonthlyPaymentText');
+    if (monthlyText) monthlyText.textContent = `${formatPrice(activeMonthly)} so'm / oy`;
+}
+
+function handleOrderSubmission() {
+    if (!currentUser) {
+        showToast("Iltimos, avval tizimga kiring!");
+        checkUserAuth();
         return;
     }
 
-    const total = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+    if (cart.length === 0) {
+        showToast("Savatchangiz bo'sh!");
+        return;
+    }
 
-    const newOrder = {
-        id: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
-        userId: currentUser ? currentUser.id : 'Mehmon',
-        name,
-        phone,
-        address: address || 'Kiritilmagan',
-        items: [...cart],
-        total,
-        paymentType: cartPaymentType === 'installment' ? `Muddatli to'lov (${cartInstallmentMonths} oy)` : "Naqd / To'liq to'lov",
-        date: new Date().toLocaleString('uz-UZ'),
+    const nameInput = document.getElementById('customerName');
+    const phoneInput = document.getElementById('customerPhone');
+    const addressInput = document.getElementById('customerAddress');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    const phone = phoneInput ? phoneInput.value.trim() : '';
+    const address = addressInput ? addressInput.value.trim() : '';
+
+    if (!name || !phone) {
+        showToast("Iltimos, Ismingiz va Telefoningizni kiriting!");
+        return;
+    }
+
+    const orderId = 'ORD-' + Math.floor(100000 + Math.random() * 900000);
+    const orderDate = new Date().toLocaleString('uz-UZ');
+
+    let calculatedTotal = 0;
+    cart.forEach(item => {
+        let itemTotal = item.price * item.quantity;
+        if (item.paymentType === 'installment') {
+            if (item.installmentMonths === 6) itemTotal = Math.round((item.price * 1.05) * item.quantity);
+            if (item.installmentMonths === 12) itemTotal = Math.round((item.price * 1.12) * item.quantity);
+        }
+        calculatedTotal += itemTotal;
+    });
+
+    const paymentLabel = cartPaymentType === 'installment'
+        ? `Bo'lib to'lash (${cartInstallmentMonths} Oy - 0% Boshlang'ich)`
+        : "Naqd to'lov";
+
+    const orderPayload = {
+        id: orderId,
+        userId: currentUser.id,
+        name: name,
+        phone: phone,
+        address: address || "Manzil ko'rsatilmadi",
+        items: cart,
+        total: calculatedTotal,
+        paymentType: paymentLabel,
+        date: orderDate,
         status: 'Yangi'
     };
 
-    try {
-        fetch(`${API_BASE_URL}/api/orders`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newOrder)
-        });
-    } catch (e) {}
+    saveOrderLocally(orderPayload);
+    sendOrderToBackend(orderPayload);
+    sendOrderToTelegramBot(orderPayload);
 
     cart = [];
     saveCart();
     updateCartUI();
-    cartModal?.classList.add('hidden');
-    showToast(`Buyurtma #${newOrder.id} muvaffaqiyatli qabul qilindi!`);
+
+    if (cartModal) cartModal.classList.add('hidden');
+
+    if (successOrderNumberBadge) successOrderNumberBadge.textContent = `#${orderId}`;
+    if (orderSuccessModal) orderSuccessModal.classList.remove('hidden');
+
+    showToast("Buyurtmangiz muvaffaqiyatli qabul qilindi!");
 }
 
-function formatPrice(price) {
-    return (price || 0).toLocaleString('fr-FR');
+function saveOrderLocally(newOrder) {
+    try {
+        let ordersList = [];
+        const saved = localStorage.getItem('tasanno_orders');
+        if (saved) ordersList = JSON.parse(saved);
+        ordersList.unshift(newOrder);
+        localStorage.setItem('tasanno_orders', JSON.stringify(ordersList));
+    } catch (e) {
+        console.error("Local order save error", e);
+    }
+}
+
+function sendOrderToBackend(orderData) {
+    fetch(`${API_BASE_URL}/api/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData)
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log("Order synced to backend server:", data);
+    })
+    .catch(err => {
+        console.warn("Backend server order sync failed (offline or network error):", err);
+    });
+}
+
+function sendOrderToTelegramBot(orderData) {
+    if (!BOT_TOKEN || BOT_TOKEN === "YOUR_BOT_TOKEN_HERE") return;
+
+    let itemsText = (orderData.items || []).map(i => `• ${i.title} (${i.quantity}x) = ${formatPrice(i.price * i.quantity)} so'm`).join('\n');
+
+    let text = `🛒 <b>YANGI BUYURTMA #${orderData.id}</b>\n\n`;
+    text += `👤 <b>Mijoz:</b> ${orderData.name}\n`;
+    text += `📞 <b>Tel:</b> ${orderData.phone}\n`;
+    text += `📍 <b>Manzil/Izoh:</b> ${orderData.address}\n`;
+    text += `💳 <b>To'lov turi:</b> ${orderData.paymentType}\n\n`;
+    text += `📦 <b>Mahsulotlar:</b>\n${itemsText}\n\n`;
+    text += `💰 <b>Jami summa:</b> ${formatPrice(orderData.total)} so'm\n`;
+    text += `📅 <b>Vaqti:</b> ${orderData.date}`;
+
+    if (ADMIN_CHAT_ID) {
+        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                chat_id: ADMIN_CHAT_ID,
+                text: text,
+                parse_mode: 'HTML'
+            })
+        }).catch(e => console.warn("Telegram bot notify error", e));
+    }
+}
+
+function openProductModalForAdd() {
+    if (!productModal) return;
+
+    if (editProductId) editProductId.value = '';
+    if (prodTitle) prodTitle.value = '';
+    if (prodPrice) prodPrice.value = '';
+    if (prodCategory) prodCategory.value = 'Smartfonlar';
+    if (prodImage) prodImage.value = '';
+    if (prodDesc) prodDesc.value = '';
+    if (productModalTitle) productModalTitle.innerHTML = '<i class="fa-solid fa-plus-circle"></i> Yangi Mahsulot Qo\'shish';
+
+    productModal.classList.remove('hidden');
+}
+
+function openProductModalForEdit(id) {
+    const prod = products.find(p => p.id === id);
+    if (!prod || !productModal) return;
+
+    if (editProductId) editProductId.value = prod.id;
+    if (prodTitle) prodTitle.value = prod.title;
+    if (prodPrice) prodPrice.value = prod.price;
+    if (prodCategory) prodCategory.value = prod.category || 'Smartfonlar';
+    if (prodImage) prodImage.value = prod.image;
+    if (prodDesc) prodDesc.value = prod.description || '';
+    if (productModalTitle) productModalTitle.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Mahsulotni Tahrirlash';
+
+    productModal.classList.remove('hidden');
+}
+
+function handleSaveProduct() {
+    const title = prodTitle ? prodTitle.value.trim() : '';
+    const price = prodPrice ? parseFloat(prodPrice.value) : 0;
+    const category = prodCategory ? prodCategory.value : 'Smartfonlar';
+    const image = prodImage ? prodImage.value.trim() : '';
+    const desc = prodDesc ? prodDesc.value.trim() : '';
+    const isEdit = editProductId && editProductId.value !== '';
+
+    if (!title || !price || !image) {
+        showToast("Iltimos, barcha zaruriy maydonlarni to'ldiring!");
+        return;
+    }
+
+    if (isEdit) {
+        const id = editProductId.value;
+        const index = products.findIndex(p => p.id === id);
+        if (index > -1) {
+            products[index] = { id, title, price, category, image, description: desc };
+            saveProducts();
+            showToast("Mahsulot tahrirlandi!");
+
+            fetch(`${API_BASE_URL}/api/products/${id}`, { method: 'DELETE' }).catch(e => {});
+            fetch(`${API_BASE_URL}/api/products`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(products[index])
+            }).catch(e => {});
+        }
+    } else {
+        const newProd = {
+            id: Date.now().toString(),
+            title, price, category, image, description: desc
+        };
+        products.unshift(newProd);
+        saveProducts();
+        showToast("Yangi mahsulot qo'shildi!");
+
+        fetch(`${API_BASE_URL}/api/products`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newProd)
+        }).catch(e => {});
+    }
+
+    if (productModal) productModal.classList.add('hidden');
+    renderCategories();
+    renderProducts();
+}
+
+function deleteProduct(id) {
+    if (confirm("Rostdan ham ushbu mahsulotni o'chirmoqchisiz?")) {
+        products = products.filter(p => p.id !== id);
+        saveProducts();
+        renderCategories();
+        renderProducts();
+        showToast("Mahsulot o'chirildi");
+
+        fetch(`${API_BASE_URL}/api/products/${id}`, {
+            method: 'DELETE'
+        }).catch(e => console.warn("Backend product delete error", e));
+    }
+}
+
+function formatPrice(p) {
+    return (parseFloat(p) || 0).toLocaleString('fr-FR');
 }
 
 function showToast(msg) {
@@ -641,4 +976,10 @@ function showToast(msg) {
     toast.textContent = msg;
     toast.classList.remove('hidden');
     setTimeout(() => toast.classList.add('hidden'), 2500);
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
 }
