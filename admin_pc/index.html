@@ -465,6 +465,7 @@
             align-items: center;
             gap: 16px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            animation: fadeIn 0.3s ease-in-out;
         }
 
         .user-avatar {
@@ -858,6 +859,7 @@
         let currentFilter = 'all';
         let isSoundEnabled = true;
         let previousOrdersHash = "";
+        let previousUsersHash = "";
 
         // UNLOCK AUDIO ON USER INTERACTION
         let audioCtx = null;
@@ -994,9 +996,13 @@
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data)) {
-                        users = data;
-                        renderUsers();
-                        updateStats();
+                        const currentHash = JSON.stringify(data);
+                        if (currentHash !== previousUsersHash) {
+                            previousUsersHash = currentHash;
+                            users = data;
+                            renderUsers();
+                            updateStats();
+                        }
                     }
                 }
             } catch(e) { console.error("Users fetch error", e); }
@@ -1235,11 +1241,11 @@
         loadAllData();
         setInterval(() => {
             loadOrders();
+            loadUsers();
         }, 1000);
 
         setInterval(() => {
             loadProducts();
-            loadUsers();
         }, 3000);
     </script>
 </body>

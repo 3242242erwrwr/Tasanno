@@ -62,27 +62,37 @@ app.get('/api/users', (req, res) => {
     res.json(users);
 });
 
-// POST user
+// POST user (register or update)
 app.post('/api/users', (req, res) => {
     const { id, name, phone, avatar } = req.body;
-    if (!name || !phone) {
-        return res.status(400).json({ error: 'Name and phone required' });
+    if (!name) {
+        return res.status(400).json({ error: 'Name required' });
     }
 
-    const cleanPhone = phone.replace(/\D/g, '');
-    let existingUser = users.find(u => u.phone.replace(/\D/g, '') === cleanPhone);
+    const cleanPhone = phone ? phone.replace(/\D/g, '') : '';
+
+    // Match by unique ID or clean phone (if valid length)
+    let existingUser = users.find(u => {
+        if (id && String(u.id) === String(id)) return true;
+        if (cleanPhone.length >= 7) {
+            const uClean = u.phone ? u.phone.replace(/\D/g, '') : '';
+            return uClean.length >= 7 && uClean === cleanPhone;
+        }
+        return false;
+    });
 
     if (existingUser) {
         existingUser.name = name;
-        existingUser.avatar = avatar || existingUser.avatar;
+        if (phone && !phone.includes('Ilovani ochdi')) existingUser.phone = phone;
+        if (avatar) existingUser.avatar = avatar;
         existingUser.lastActive = new Date().toLocaleString('uz-UZ');
         return res.json({ message: 'User activity updated', user: existingUser });
     }
 
     const newUser = {
         id: id || ('#ID-' + Math.floor(100000 + Math.random() * 900000)),
-        name,
-        phone,
+        name: name || 'Yangi Tashrif Buyuruvchi',
+        phone: phone || 'Kiritilmagan',
         avatar: avatar || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
         registeredAt: new Date().toLocaleString('uz-UZ'),
         lastActive: new Date().toLocaleString('uz-UZ')
@@ -143,7 +153,11 @@ app.post('/api/orders', (req, res) => {
 
     // Auto register user if not existing
     const cleanPhone = orderData.phone.replace(/\D/g, '');
-    let user = users.find(u => u.phone.replace(/\D/g, '') === cleanPhone);
+    let user = users.find(u => {
+        const uClean = u.phone ? u.phone.replace(/\D/g, '') : '';
+        return uClean.length >= 7 && uClean === cleanPhone;
+    });
+
     if (!user) {
         users.unshift({
             id: orderData.userId || ('#ID-' + Math.floor(100000 + Math.random() * 900000)),
@@ -154,6 +168,8 @@ app.post('/api/orders', (req, res) => {
             lastActive: newOrder.date
         });
     } else {
+        user.name = orderData.name;
+        user.phone = orderData.phone;
         user.lastActive = newOrder.date;
     }
 
