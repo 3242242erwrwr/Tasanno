@@ -718,15 +718,7 @@
                 </div>
             </div>
 
-            <div class="stat-card">
-                <div class="stat-icon" style="background: rgba(168, 85, 247, 0.15); color: #c084fc;">
-                    <i class="fa-solid fa-comments"></i>
-                </div>
-                <div class="stat-info">
-                    <h3 id="statTotalMessages">0</h3>
-                    <p>Chat Xabarlari Soni</p>
-                </div>
-            </div>
+
 
             <div class="stat-card">
                 <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #34d399;">
@@ -1463,8 +1455,7 @@
             document.getElementById('statNewOrders').textContent = orders.filter(o => o.status === 'Yangi').length;
             document.getElementById('statTotalUsers').textContent = users.length;
             document.getElementById('statTotalProducts').textContent = products.length;
-            document.getElementById('statTotalCouriers').textContent = couriers.filter(c => c.status === 'Approved').length;
-            document.getElementById('statTotalMessages').textContent = messages.length;
+            document.getElementById('statTotalCouriers').textContent = couriers.length;
 
             const totalSum = orders
                 .filter(o => o.status !== 'Bekor qilindi')
