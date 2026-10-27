@@ -102,80 +102,42 @@ function setupListeners() {
     });
 }
 
-function startRealtimeSync() {
-    pollLatestOrders(false);
-    pollRenderBackendOrders(false);
+let previousOrdersHash = "";
 
-    try {
-        const sse = new EventSource(`${SYNC_URL}/sse`);
-        sse.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.event === 'message' && data.message) {
-                    const newOrder = JSON.parse(data.message);
-                    processIncomingOrder(newOrder);
-                }
-            } catch (e) {}
-        };
-    } catch (e) {}
-
-    setInterval(() => {
-        pollLatestOrders(false);
-        pollRenderBackendOrders(false);
-    }, 1000);
-}
-
-async function pollRenderBackendOrders(showToastMsg = false) {
+async function syncOrdersFromBackend(showToastMsg = false) {
     try {
         const resp = await fetch(`${API_BASE_URL}/api/orders`, { cache: 'no-cache' });
         if (!resp.ok) return;
         const backendOrders = await resp.json();
         if (Array.isArray(backendOrders)) {
-            const filteredBackend = backendOrders.filter(o => !deletedOrderIds.has(String(o.id)));
-            const isDifferent = JSON.stringify(orders.map(o => ({id: String(o.id), status: o.status}))) !==
-                                JSON.stringify(filteredBackend.map(o => ({id: String(o.id), status: o.status})));
+            const activeOrders = backendOrders.filter(o => !deletedOrderIds.has(String(o.id)));
+            const currentHash = JSON.stringify(activeOrders);
 
-            if (isDifferent) {
-                if (filteredBackend.length > orders.length && orders.length >= 0) {
+            if (currentHash !== previousOrdersHash) {
+                if (previousOrdersHash !== "" && activeOrders.length > orders.length) {
                     playOrderChime();
+                    showToast("🔔 Yangi buyurtma keldi!");
                 }
-                orders = filteredBackend;
+                previousOrdersHash = currentHash;
+                orders = activeOrders;
                 saveOrders();
                 renderOrders();
                 updateStats();
                 if (showToastMsg) {
-                    showToast("Buyurtmalar serverdan yangilandi!");
+                    showToast("Buyurtmalar yangilandi!");
                 }
+            } else if (showToastMsg) {
+                showToast("Buyurtmalar ro'yxati yangi");
             }
         }
     } catch (e) {}
 }
 
-async function pollLatestOrders(showToastMsg) {
-    try {
-        const resp = await fetch(`${SYNC_URL}/json?poll=1`, { cache: 'no-cache' });
-        if (!resp.ok) return;
-        const text = await resp.text();
-        const lines = text.trim().split('\n');
-
-        let newFound = false;
-        lines.forEach(line => {
-            try {
-                if (!line) return;
-                const item = JSON.parse(line);
-                if (item.event === 'message' && item.message) {
-                    const orderObj = JSON.parse(item.message);
-                    if (processIncomingOrder(orderObj)) {
-                        newFound = true;
-                    }
-                }
-            } catch (e) {}
-        });
-
-        if (showToastMsg && newFound) {
-            showToast("Yangi buyurtmalar keldi!");
-        }
-    } catch (e) {}
+function startRealtimeSync() {
+    syncOrdersFromBackend(false);
+    setInterval(() => {
+        syncOrdersFromBackend(false);
+    }, 2000);
 }
 
 function processIncomingOrder(orderObj) {

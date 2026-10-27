@@ -124,100 +124,50 @@ function setupListeners() {
 
     // Manual Refresh
     refreshBtn?.addEventListener('click', () => {
-        pollLatestOrders(true);
-        pollRenderBackendOrders(true);
+        syncOrdersFromBackend(true);
     });
 }
 
-// REALTIME LISTENER (SSE & Periodic Poll)
-function startRealtimeSync() {
-    // 1. Initial poll of cached messages and Render Backend orders
-    pollLatestOrders(false);
-    pollRenderBackendOrders(false);
+let previousOrdersHash = "";
 
-    // 2. Server-Sent Events (SSE) for instant sub-second delivery
-    try {
-        const sse = new EventSource(`${SYNC_URL}/sse`);
-        sse.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.event === 'message' && data.message) {
-                    const newOrder = JSON.parse(data.message);
-                    processIncomingOrder(newOrder);
-                }
-            } catch (e) {
-                console.error("SSE parse error", e);
-            }
-        };
-        sse.onerror = () => {
-            console.log("SSE reconnecting...");
-        };
-    } catch (e) {
-        console.error("SSE setup error", e);
-    }
-
-    // 3. Ultra-fast auto polling every 1 second
-    setInterval(() => {
-        pollLatestOrders(false);
-        pollRenderBackendOrders(false);
-    }, 1000);
-}
-
-// POLL RENDER BACKEND ORDERS
-async function pollRenderBackendOrders(showToastMsg = false) {
+// REALTIME BACKEND SYNC
+async function syncOrdersFromBackend(showToastMsg = false) {
     try {
         const resp = await fetch(`${API_BASE_URL}/api/orders`, { cache: 'no-cache' });
         if (!resp.ok) return;
         const backendOrders = await resp.json();
         if (Array.isArray(backendOrders)) {
-            const filteredBackend = backendOrders.filter(o => !deletedOrderIds.has(String(o.id)));
-            const isDifferent = JSON.stringify(orders.map(o => ({id: String(o.id), status: o.status}))) !==
-                                JSON.stringify(filteredBackend.map(o => ({id: String(o.id), status: o.status})));
+            const activeOrders = backendOrders.filter(o => !deletedOrderIds.has(String(o.id)));
+            const currentHash = JSON.stringify(activeOrders);
 
-            if (isDifferent) {
-                if (filteredBackend.length > orders.length && orders.length >= 0) {
+            if (currentHash !== previousOrdersHash) {
+                if (previousOrdersHash !== "" && activeOrders.length > orders.length) {
                     playOrderChime();
+                    showToast("🔔 Yangi buyurtma keldi!");
                 }
-                orders = filteredBackend;
+                previousOrdersHash = currentHash;
+                orders = activeOrders;
                 saveOrders();
                 renderOrders();
                 updateStats();
                 if (showToastMsg) {
-                    showToast("Buyurtmalar serverdan yangilandi!");
+                    showToast("Buyurtmalar yangilandi!");
                 }
             } else if (showToastMsg) {
                 showToast("Buyurtmalar ro'yxati yangi");
             }
         }
     } catch (e) {
-        console.warn("Render Backend orders sync error:", e);
+        console.warn("Backend orders sync error:", e);
     }
 }
 
-// POLL ORDERS
-async function pollLatestOrders(showToastMsg) {
-    try {
-        const resp = await fetch(`${SYNC_URL}/json?poll=1`, { cache: 'no-cache' });
-        if (!resp.ok) return;
-        const text = await resp.text();
-        const lines = text.trim().split('\n');
-
-        let newFound = false;
-        lines.forEach(line => {
-            try {
-                if (!line) return;
-                const item = JSON.parse(line);
-                if (item.event === 'message' && item.message) {
-                    const orderObj = JSON.parse(item.message);
-                    if (processIncomingOrder(orderObj)) {
-                        newFound = true;
-                    }
-                }
-            } catch (e) {}
-        });
-
-        if (showToastMsg) {
-            showToast(newFound ? "Yangi buyurtmalar keldi!" : "Buyurtmalar ro'yxati yangilandi");
+function startRealtimeSync() {
+    syncOrdersFromBackend(false);
+    setInterval(() => {
+        syncOrdersFromBackend(false);
+    }, 2000);
+}
         }
     } catch (e) {
         console.error("Poll error:", e);
