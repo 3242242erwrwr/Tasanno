@@ -741,13 +741,18 @@
 
         <!-- TAB 1: ORDERS MANAGEMENT -->
         <section id="tab-orders" class="tab-section active">
-            <div class="filter-bar">
-                <div class="chip active" onclick="filterOrders('all', this)">Barchasi</div>
-                <div class="chip" onclick="filterOrders('Yangi', this)">Yangi</div>
-                <div class="chip" onclick="filterOrders('Qabul qilindi', this)">Qabul qilindi</div>
-                <div class="chip" onclick="filterOrders('Yetkazilmoqda', this)">Yetkazilmoqda</div>
-                <div class="chip" onclick="filterOrders('Yetkazildi', this)">Yetkazildi</div>
-                <div class="chip" onclick="filterOrders('Bekor qilindi', this)">Bekor qilindi</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div class="filter-bar" style="margin-bottom: 0;">
+                    <div class="chip active" onclick="filterOrders('all', this)">Barchasi</div>
+                    <div class="chip" onclick="filterOrders('Yangi', this)">Yangi</div>
+                    <div class="chip" onclick="filterOrders('Qabul qilindi', this)">Qabul qilindi</div>
+                    <div class="chip" onclick="filterOrders('Yetkazilmoqda', this)">Yetkazilmoqda</div>
+                    <div class="chip" onclick="filterOrders('Yetkazildi', this)">Yetkazildi</div>
+                    <div class="chip" onclick="filterOrders('Bekor qilindi', this)">Bekor qilindi</div>
+                </div>
+                <button class="btn btn-primary" onclick="openAddOrderModal()">
+                    <i class="fa-solid fa-plus"></i> Yangi Buyurtma Yaratish
+                </button>
             </div>
 
             <div class="orders-grid" id="ordersContainer">
@@ -828,6 +833,93 @@
         </section>
     </main>
 
+    <!-- ADD PRODUCT MODAL (FILE UPLOAD) -->
+    <div class="modal-overlay hidden" id="addProductModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Yangi Mahsulot Qo'shish</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 20px;" onclick="closeAddProductModal()"></i>
+            </div>
+            <form id="productForm" onsubmit="handleCreateProduct(event)">
+                <div class="form-group">
+                    <label for="prodTitle">Mahsulot Nomi</label>
+                    <input type="text" id="prodTitle" class="form-control" placeholder="Masalan: iPhone 16 Pro Max" required>
+                </div>
+                <div class="form-group">
+                    <label for="prodPrice">Narxi (so'm)</label>
+                    <input type="number" id="prodPrice" class="form-control" placeholder="15000000" required>
+                </div>
+                <div class="form-group">
+                    <label for="prodCategory">Kategoriya</label>
+                    <select id="prodCategory" class="form-control">
+                        <option value="Smartfonlar">Smartfonlar</option>
+                        <option value="Kiyimlar">Kiyimlar</option>
+                        <option value="Aksessuarlar">Aksessuarlar</option>
+                        <option value="Oziq-ovqat">Oziq-ovqat</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="prodImageFile"><i class="fa-solid fa-image"></i> Mahsulot Rasmini Tanlang (Galeriyadan)</label>
+                    <input type="file" id="prodImageFile" accept="image/*" class="form-control" onchange="previewUploadedImage(event)">
+                    <img id="uploadedImagePreview" src="" alt="Preview" style="width:100px; height:100px; object-fit:cover; border-radius:12px; margin-top:8px; display:none; border:2px solid #3b82f6;">
+                </div>
+                <div class="form-group">
+                    <label for="prodDesc">Tavsif</label>
+                    <textarea id="prodDesc" class="form-control" rows="3" placeholder="Mahsulot haqida qisqacha ma'lumot"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeAddProductModal()">Bekor qilish</button>
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Saqlash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ADD ORDER MODAL (ADMIN MANUAL CREATION) -->
+    <div class="modal-overlay hidden" id="addOrderModal">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Yangi Buyurtma Yaratish</h3>
+                <i class="fa-solid fa-xmark" style="cursor: pointer; font-size: 20px;" onclick="closeAddOrderModal()"></i>
+            </div>
+            <form id="manualOrderForm" onsubmit="handleCreateManualOrder(event)">
+                <div class="form-group">
+                    <label for="ordCustomerName">Mijoz Ismi</label>
+                    <input type="text" id="ordCustomerName" class="form-control" placeholder="Masalan: Jamshid" required>
+                </div>
+                <div class="form-group">
+                    <label for="ordCustomerPhone">Mijoz Telefon Raqami</label>
+                    <input type="tel" id="ordCustomerPhone" class="form-control" placeholder="+998 90 123 45 67" required>
+                </div>
+                <div class="form-group">
+                    <label for="ordCustomerAddress">Manzil / Izoh</label>
+                    <textarea id="ordCustomerAddress" class="form-control" rows="2" placeholder="Shahar, tuman, ko'cha..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="ordItemTitle">Mahsulot Nomi va Donasi</label>
+                    <input type="text" id="ordItemTitle" class="form-control" placeholder="Masalan: iPhone 15 Pro Max (1 dona)" required>
+                </div>
+                <div class="form-group">
+                    <label for="ordTotalSum">Umumiy Summa (so'm)</label>
+                    <input type="number" id="ordTotalSum" class="form-control" placeholder="15400000" required>
+                </div>
+                <div class="form-group">
+                    <label for="ordPaymentType">To'lov Turi</label>
+                    <select id="ordPaymentType" class="form-control">
+                        <option value="Naqd to'lov">Naqd to'lov</option>
+                        <option value="Bo'lib to'lash (3 Oy)">Bo'lib to'lash (3 Oy)</option>
+                        <option value="Bo'lib to'lash (6 Oy)">Bo'lib to'lash (6 Oy)</option>
+                        <option value="Bo'lib to'lash (12 Oy)">Bo'lib to'lash (12 Oy)</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" style="flex:1;" onclick="closeAddOrderModal()">Bekor qilish</button>
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Buyurtmani Saqlash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- ADMIN COURIER CHAT MODAL -->
     <div id="adminCourierChatModal" class="modal-overlay hidden">
         <div class="modal-card" style="max-width: 550px; height: 600px; display: flex; flex-direction: column;">
@@ -842,7 +934,7 @@
                 <!-- Messages -->
             </div>
             <div style="display:flex; gap:8px;">
-                <input type="text" id="modalChatInput" placeholder="Kuryerga xabaringizni yozing..." class="form-control" style="flex:1;" onkeypress="if(event.key==='Enter') sendAdminCourierModalMsg()">
+                <input type="text" id="modalChatInput" placeholder="Kuryerga xabaringizni yozing..." class="form-control" style="flex:1;">
                 <button class="btn btn-primary" onclick="sendAdminCourierModalMsg()"><i class="fa-solid fa-paper-plane"></i> Yuborish</button>
             </div>
         </div>
@@ -864,6 +956,7 @@
         let messages = [];
         let activeChatCourierPhone = null;
         let activeChatCourierName = null;
+        let currentUploadedImageBase64 = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80";
         let currentFilter = 'all';
         let isSoundEnabled = true;
         let previousOrdersHash = "";
@@ -1067,6 +1160,100 @@
             } catch(e) {}
         }
 
+        function openAddProductModal() {
+            currentUploadedImageBase64 = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80";
+            const preview = document.getElementById('uploadedImagePreview');
+            if (preview) preview.style.display = 'none';
+            document.getElementById('addProductModal').classList.remove('hidden');
+        }
+
+        function closeAddProductModal() {
+            document.getElementById('addProductModal').classList.add('hidden');
+        }
+
+        function previewUploadedImage(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentUploadedImageBase64 = e.target.result;
+                    const img = document.getElementById('uploadedImagePreview');
+                    if (img) {
+                        img.src = currentUploadedImageBase64;
+                        img.style.display = 'block';
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function handleCreateProduct(e) {
+            e.preventDefault();
+            const title = document.getElementById('prodTitle').value.trim();
+            const price = document.getElementById('prodPrice').value;
+            const category = document.getElementById('prodCategory').value;
+            const description = document.getElementById('prodDesc').value.trim();
+            const image = currentUploadedImageBase64 || "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80";
+
+            try {
+                const res = await fetch(`${API_BASE}/api/products`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ title, price, category, image, description })
+                });
+
+                if (res.ok) {
+                    showToast("Yangi mahsulot rasm bilan qo'shildi!");
+                    closeAddProductModal();
+                    loadProducts();
+                }
+            } catch(e) { showToast("Xatolik yuz berdi"); }
+        }
+
+        function openAddOrderModal() {
+            document.getElementById('addOrderModal').classList.remove('hidden');
+        }
+
+        function closeAddOrderModal() {
+            document.getElementById('addOrderModal').classList.add('hidden');
+        }
+
+        async function handleCreateManualOrder(e) {
+            e.preventDefault();
+            const name = document.getElementById('ordCustomerName').value.trim();
+            const phone = document.getElementById('ordCustomerPhone').value.trim();
+            const address = document.getElementById('ordCustomerAddress').value.trim();
+            const itemTitle = document.getElementById('ordItemTitle').value.trim();
+            const total = parseFloat(document.getElementById('ordTotalSum').value) || 0;
+            const paymentType = document.getElementById('ordPaymentType').value;
+
+            const orderPayload = {
+                id: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
+                name: name,
+                phone: phone,
+                address: address,
+                items: [{ title: itemTitle, quantity: 1, price: total }],
+                total: total,
+                paymentType: paymentType,
+                date: new Date().toLocaleString('uz-UZ'),
+                status: 'Yangi'
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/api/orders`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderPayload)
+                });
+
+                if (res.ok) {
+                    showToast("Yangi buyurtma yaratildi!");
+                    closeAddOrderModal();
+                    loadOrders();
+                }
+            } catch(e) { showToast("Xatolik yuz berdi"); }
+        }
+
         function openCourierChatModal(phone, name) {
             activeChatCourierPhone = phone;
             activeChatCourierName = name;
@@ -1217,13 +1404,7 @@
                 card.className = `order-card ${ord.status === 'Yangi' ? 'new-highlight' : ''}`;
 
                 const cleanPhone = (ord.phone || '').replace(/\D/g, '');
-
-                const itemsHtml = (ord.items || []).map(i => `
-                    <div class="item-row">
-                        <span>• ${i.title} (${i.quantity} dona)</span>
-                        <strong>${formatPrice(i.price * i.quantity)} so'm</strong>
-                    </div>
-                `).join('');
+                const itemsListNames = (ord.items || []).map(i => `• ${i.title} (${i.quantity}x)`).join(', ');
 
                 card.innerHTML = `
                     <div class="order-header">
@@ -1231,21 +1412,26 @@
                         <span class="badge-status status-${statusClass}">${ord.status || 'Yangi'}</span>
                     </div>
 
-                    <div class="customer-info">
-                        <div class="customer-detail">
-                            <h4>${ord.name || 'Mijoz'}</h4>
-                            <p><i class="fa-solid fa-location-dot"></i> ${ord.address || 'Kiritilmagan'}</p>
-                        </div>
-                        ${cleanPhone ? `<a href="tel:+${cleanPhone}" class="phone-link"><i class="fa-solid fa-phone"></i> ${ord.phone}</a>` : ''}
+                    <!-- 1. MANZIL -->
+                    <div style="font-size:14px; font-weight:700; color:white;">
+                        <i class="fa-solid fa-location-dot" style="color:#3b82f6; margin-right:6px;"></i>
+                        <span><strong>Manzil:</strong> ${ord.address || 'Kiritilmagan'}</span>
                     </div>
 
-                    <div class="order-items">
-                        ${itemsHtml}
+                    <!-- 2. KLIENT NOMERI -->
+                    <div style="font-size:14px; font-weight:700; color:#34d399; display:flex; align-items:center; gap:8px;">
+                        <i class="fa-solid fa-phone"></i>
+                        <span><strong>Klient Nomeri:</strong> ${ord.phone || 'Kiritilmagan'}</span>
+                    </div>
+
+                    <!-- 3. NIMALIGI (Mahsulotlar nomi) -->
+                    <div style="font-size:13px; color:#60a5fa; font-weight:600;">
+                        <i class="fa-solid fa-box" style="margin-right:6px;"></i>
+                        <span><strong>Nimaligi:</strong> ${itemsListNames || 'Mahsulotlar'}</span>
                     </div>
 
                     <div class="order-footer">
                         <div>
-                            <div style="font-size: 11px; color: var(--text-muted);">${ord.paymentType || "Naqd to'lov"}</div>
                             <div class="total-amount">${formatPrice(ord.total || 0)} so'm</div>
                             ${ord.courierName ? `<div style="font-size:12px; color:#60a5fa; font-weight:700; margin-top:4px;"><i class="fa-solid fa-motorcycle"></i> Kuryer: ${ord.courierName} (${ord.courierPhone || ''})</div>` : ''}
                         </div>
@@ -1405,29 +1591,6 @@
             });
         }
 
-        async function handleCreateProduct(e) {
-            e.preventDefault();
-            const title = document.getElementById('prodTitle').value;
-            const price = document.getElementById('prodPrice').value;
-            const category = document.getElementById('prodCategory').value;
-            const image = document.getElementById('prodImage').value;
-            const description = document.getElementById('prodDesc').value;
-
-            try {
-                const res = await fetch(`${API_BASE}/api/products`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, price, category, image, description })
-                });
-
-                if (res.ok) {
-                    showToast("Yangi mahsulot qo'shildi!");
-                    closeAddProductModal();
-                    loadProducts();
-                }
-            } catch(e) { showToast("Xatolik yuz berdi"); }
-        }
-
         async function deleteProduct(id) {
             if (confirm("Rostdan ham ushbu mahsulotni o'chirmoqchisiz?")) {
                 try {
@@ -1438,14 +1601,6 @@
                     }
                 } catch(e) { showToast("Xatolik"); }
             }
-        }
-
-        function openAddProductModal() {
-            document.getElementById('addProductModal').classList.remove('hidden');
-        }
-
-        function closeAddProductModal() {
-            document.getElementById('addProductModal').classList.add('hidden');
         }
 
         function updateStats() {
