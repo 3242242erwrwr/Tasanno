@@ -1,19 +1,22 @@
 package com.example.tasanno.orders
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.app.Activity
 
 class MainActivity : Activity() {
 
     private lateinit var mWebView: WebView
+    private var filePathCallback: ValueCallback<Array<Uri>>? = null
+    private val FILECHOOSER_RESULTCODE = 1001
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,7 +40,29 @@ class MainActivity : Activity() {
                     return false
                 }
             }
-            webChromeClient = WebChromeClient()
+            webChromeClient = object : WebChromeClient() {
+                override fun onShowFileChooser(
+                    webView: WebView?,
+                    filePathCallbackParam: ValueCallback<Array<Uri>>?,
+                    fileChooserParams: FileChooserParams?
+                ): Boolean {
+                    filePathCallback?.onReceiveValue(null)
+                    filePathCallback = filePathCallbackParam
+
+                    val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "image/*"
+                    }
+
+                    try {
+                        startActivityForResult(Intent.createChooser(intent, "Rasm Tanlang"), FILECHOOSER_RESULTCODE)
+                    } catch (e: Exception) {
+                        filePathCallback = null
+                        return false
+                    }
+                    return true
+                }
+            }
 
             settings.apply {
                 javaScriptEnabled = true
@@ -55,6 +80,29 @@ class MainActivity : Activity() {
         }
 
         setContentView(mWebView)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == FILECHOOSER_RESULTCODE) {
+            if (filePathCallback != null) {
+                val results = if (resultCode == RESULT_OK && data != null) {
+                    val dataString = data.dataString
+                    val clipData = data.clipData
+                    if (clipData != null) {
+                        val count = clipData.itemCount
+                        Array(count) { i -> clipData.getItemAt(i).uri }
+                    } else if (dataString != null) {
+                        arrayOf(Uri.parse(dataString))
+                    } else null
+                } else null
+
+                filePathCallback?.onReceiveValue(results)
+                filePathCallback = null
+            }
+        } else {
+            super.onActivityResult(requestCode, resultCode, data)
+        }
     }
 
     @Deprecated("Deprecated in Java")
