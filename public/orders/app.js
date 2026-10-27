@@ -6,6 +6,7 @@ let chatMessages = [];
 let currentFilter = 'all';
 let isSoundEnabled = true;
 let isChatModalOpen = false;
+let expandedOrderIds = new Set();
 
 let currentCourier = null;
 try {
@@ -429,7 +430,9 @@ async function syncOrdersFromBackend(showToastMsg = false) {
                 showToast("Buyurtmalar ro'yxati yangi");
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.warn("Backend orders sync error:", e);
+    }
 }
 
 function startRealtimeSync() {
@@ -467,7 +470,7 @@ function updateOrderStatus(orderId, newStatus) {
             courierName: currentCourier.name,
             courierPhone: currentCourier.phone
         })
-    }).catch(e => {});
+    }).catch(e => console.warn("Backend status update error:", e));
 
     showToast(`Buyurtma #${orderId} holati: ${newStatus}`);
 }
@@ -478,6 +481,17 @@ function cancelAndRemoveOrder(orderId) {
 
 function saveOrders() {
     localStorage.setItem('tasanno_orders', JSON.stringify(orders));
+}
+
+function toggleOrderDetails(ordId, event) {
+    if (event) event.stopPropagation();
+    const idStr = String(ordId);
+    if (expandedOrderIds.has(idStr)) {
+        expandedOrderIds.delete(idStr);
+    } else {
+        expandedOrderIds.add(idStr);
+    }
+    renderOrders();
 }
 
 function renderOrders() {
@@ -500,9 +514,15 @@ function renderOrders() {
     }
 
     filtered.forEach(ord => {
+        const isExpanded = expandedOrderIds.has(String(ord.id));
         const card = document.createElement('div');
         const statusClass = (ord.status || 'Yangi').replace(/\s+/g, '-');
         card.className = `order-card ${ord.isNewHighlight ? 'new-order-highlight' : ''}`;
+        card.style.cursor = 'pointer';
+        card.onclick = (e) => toggleOrderDetails(ord.id, e);
+
+        const itemsSummaryList = (ord.items || []).map(i => `• ${i.title} (${i.quantity}x)`).join(', ');
+        const cleanPhone = (ord.phone || '').replace(/\s+/g, '').replace(/[^\d+]/g, '');
 
         const itemsHtml = (ord.items || []).map(item => `
             <div class="order-item-row">
@@ -511,80 +531,95 @@ function renderOrders() {
             </div>
         `).join('');
 
-        const cleanPhone = (ord.phone || '').replace(/\s+/g, '').replace(/[^\d+]/g, '');
-
         card.innerHTML = `
-            <div class="order-card-header">
-                <div class="order-id-date">
-                    <span class="order-id">#${ord.id}</span>
-                    <span class="order-date"><i class="fa-regular fa-clock"></i> ${ord.date || ''}</span>
-                </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
                 <span class="status-badge status-${statusClass}">${ord.status || 'Yangi'}</span>
+                <span style="font-size:11px; color:#94a3b8;"><i class="fa-regular fa-clock"></i> ${ord.date || ''}</span>
             </div>
 
-            <div class="customer-box">
-                <div class="customer-details">
-                    <span class="customer-name"><i class="fa-solid fa-user"></i> ${ord.name || 'Mijoz'}</span>
-                    <span class="customer-phone"><i class="fa-solid fa-phone"></i> ${ord.phone || 'Kiritilmagan'}</span>
+            <!-- 1. MANZIL -->
+            <div style="font-size:15px; font-weight:800; color:white; margin-bottom:6px; display:flex; align-items:flex-start; gap:8px;">
+                <i class="fa-solid fa-location-dot" style="color:#3b82f6; margin-top:3px; font-size:16px;"></i>
+                <span>${ord.address || 'Manzil ko\'rsatilmadi'}</span>
+            </div>
+
+            <!-- 2. NIMALIGI (Mahsulotlar nomlari) -->
+            <div style="font-size:13px; color:#60a5fa; font-weight:600; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+                <i class="fa-solid fa-box" style="color:#60a5fa;"></i>
+                <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${itemsSummaryList || 'Mahsulotlar'}</span>
+            </div>
+
+            <div style="text-align:center; font-size:11px; color:#94a3b8; font-weight:700; padding-top:6px; border-top:1px dashed #334155;">
+                <i class="fa-solid ${isExpanded ? 'fa-chevron-up' : 'fa-chevron-down'}"></i> ${isExpanded ? 'Yopish' : 'Tafsilotlar va Tugmalarni Ko\'rish'}
+            </div>
+
+            ${isExpanded ? `
+                <div style="margin-top:12px; padding-top:12px; border-top:1px solid #334155;" onclick="event.stopPropagation()">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:13px;">
+                        <span style="color:#60a5fa; font-weight:800;">#${ord.id}</span>
+                        <span style="color:#34d399; font-weight:800; font-size:16px;">${formatPrice(ord.total || 0)} so'm</span>
+                    </div>
+
+                    <div class="customer-box" style="margin-bottom:10px;">
+                        <div class="customer-details">
+                            <span class="customer-name"><i class="fa-solid fa-user"></i> ${ord.name || 'Mijoz'}</span>
+                            <span class="customer-phone"><i class="fa-solid fa-phone"></i> ${ord.phone || 'Kiritilmagan'}</span>
+                        </div>
+                        ${cleanPhone ? `<a href="tel:${cleanPhone}" class="call-btn"><i class="fa-solid fa-phone"></i> Qo'ng'iroq</a>` : ''}
+                    </div>
+
+                    <div class="order-items-list" style="margin-bottom:10px;">
+                        ${itemsHtml}
+                    </div>
+
+                    <div style="font-size:12px; color:#fbbf24; font-weight:700; margin-bottom:10px;">
+                        <i class="fa-solid fa-credit-card"></i> ${ord.paymentType || "Naqd to'lov"}
+                    </div>
+
+                    ${ord.courierName ? `<div style="font-size:12px;color:#60a5fa;font-weight:700;margin-bottom:10px;"><i class="fa-solid fa-motorcycle"></i> Kuryer: ${ord.courierName} (${ord.courierPhone || ''})</div>` : ''}
+
+                    <div class="order-actions">
+                        ${ord.status === 'Yangi' ? `
+                            <button class="action-btn btn-accept" onclick="updateOrderStatus('${ord.id}', 'Qabul qilindi')">
+                                <i class="fa-solid fa-check"></i> Qabul qilish
+                            </button>
+                            <button class="action-btn btn-cancel" onclick="cancelAndRemoveOrder('${ord.id}')">
+                                <i class="fa-solid fa-xmark"></i> Bekor qilish
+                            </button>
+                        ` : ''}
+
+                        ${ord.status === 'Qabul qilindi' ? `
+                            <button class="action-btn btn-deliver" onclick="updateOrderStatus('${ord.id}', 'Yetkazilmoqda')">
+                                <i class="fa-solid fa-truck-fast"></i> Yetkazilmoqda
+                            </button>
+                            <button class="action-btn btn-cancel" onclick="cancelAndRemoveOrder('${ord.id}')">
+                                <i class="fa-solid fa-xmark"></i> Bekor qilish
+                            </button>
+                        ` : ''}
+
+                        ${ord.status === 'Yetkazilmoqda' ? `
+                            <button class="action-btn btn-complete" onclick="updateOrderStatus('${ord.id}', 'Yetkazildi')">
+                                <i class="fa-solid fa-circle-check"></i> Yetkazildi
+                            </button>
+                            <button class="action-btn btn-cancel" onclick="cancelAndRemoveOrder('${ord.id}')">
+                                <i class="fa-solid fa-xmark"></i> Bekor qilish
+                            </button>
+                        ` : ''}
+
+                        ${ord.status === 'Yetkazildi' ? `
+                            <div style="font-size:12px;color:var(--success-color);font-weight:700;width:100%;text-align:center;padding:4px;">
+                                <i class="fa-solid fa-circle-check"></i> Buyurtma muvaffaqiyatli yetkazilgan
+                            </div>
+                        ` : ''}
+
+                        ${ord.status === 'Bekor qilindi' ? `
+                            <div style="font-size:12px;color:var(--danger-color);font-weight:700;width:100%;text-align:center;padding:4px;">
+                                <i class="fa-solid fa-circle-xmark"></i> Buyurtma bekor qilingan
+                            </div>
+                        ` : ''}
+                    </div>
                 </div>
-                ${cleanPhone ? `<a href="tel:${cleanPhone}" class="call-btn"><i class="fa-solid fa-phone"></i> Qo'ng'iroq</a>` : ''}
-            </div>
-
-            <div class="address-box">
-                <i class="fa-solid fa-location-dot" style="color:var(--primary-color);margin-top:2px;"></i>
-                <span><strong>Manzil/Izoh:</strong> ${ord.address || 'Kiritilmagan'}</span>
-            </div>
-
-            <div class="order-items-list">
-                ${itemsHtml}
-            </div>
-
-            <div class="order-total-bar">
-                <span class="payment-plan-tag">${ord.paymentType || "Naqd to'lov"}</span>
-                <span class="order-total-amount">${formatPrice(ord.total || 0)} so'm</span>
-            </div>
-            ${ord.courierName ? `<div style="font-size:12px;color:#60a5fa;font-weight:700;margin-top:4px;"><i class="fa-solid fa-motorcycle"></i> Kuryer: ${ord.courierName} (${ord.courierPhone || ''})</div>` : ''}
-
-            <div class="order-actions">
-                ${ord.status === 'Yangi' ? `
-                    <button class="action-btn btn-accept" onclick="updateOrderStatus('${ord.id}', 'Qabul qilindi')">
-                        <i class="fa-solid fa-check"></i> Qabul qilish
-                    </button>
-                    <button class="action-btn btn-cancel" onclick="cancelAndRemoveOrder('${ord.id}')">
-                        <i class="fa-solid fa-xmark"></i> Bekor qilish
-                    </button>
-                ` : ''}
-
-                ${ord.status === 'Qabul qilindi' ? `
-                    <button class="action-btn btn-deliver" onclick="updateOrderStatus('${ord.id}', 'Yetkazilmoqda')">
-                        <i class="fa-solid fa-truck-fast"></i> Yetkazilmoqda
-                    </button>
-                    <button class="action-btn btn-cancel" onclick="cancelAndRemoveOrder('${ord.id}')">
-                        <i class="fa-solid fa-xmark"></i> Bekor qilish
-                    </button>
-                ` : ''}
-
-                ${ord.status === 'Yetkazilmoqda' ? `
-                    <button class="action-btn btn-complete" onclick="updateOrderStatus('${ord.id}', 'Yetkazildi')">
-                        <i class="fa-solid fa-circle-check"></i> Yetkazildi
-                    </button>
-                    <button class="action-btn btn-cancel" onclick="cancelAndRemoveOrder('${ord.id}')">
-                        <i class="fa-solid fa-xmark"></i> Bekor qilish
-                    </button>
-                ` : ''}
-
-                ${ord.status === 'Yetkazildi' ? `
-                    <div style="font-size:12px;color:var(--success-color);font-weight:700;width:100%;text-align:center;padding:4px;">
-                        <i class="fa-solid fa-circle-check"></i> Buyurtma muvaffaqiyatli yetkazilgan
-                    </div>
-                ` : ''}
-
-                ${ord.status === 'Bekor qilindi' ? `
-                    <div style="font-size:12px;color:var(--danger-color);font-weight:700;width:100%;text-align:center;padding:4px;">
-                        <i class="fa-solid fa-circle-xmark"></i> Buyurtma bekor qilingan (Qabul qilinmadi)
-                    </div>
-                ` : ''}
-            </div>
+            ` : ''}
         `;
 
         ordersContainer.appendChild(card);
