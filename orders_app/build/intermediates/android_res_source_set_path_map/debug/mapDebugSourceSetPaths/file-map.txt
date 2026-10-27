@@ -1,0 +1,8 @@
+com.example.tasanno.orders.orders_app-pngs-0 E:\MINI APP\orders_app\build\generated\res\pngs\debug
+com.example.tasanno.orders.orders_app-updated_navigation_xml-1 E:\MINI APP\orders_app\build\generated\updated_navigation_xml\debug
+com.example.tasanno.orders.orders_app-packageDebugResources-2 E:\MINI APP\orders_app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.example.tasanno.orders.orders_app-packageDebugResources-3 E:\MINI APP\orders_app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.example.tasanno.orders.orders_app-debug-4 E:\MINI APP\orders_app\build\intermediates\merged_res\debug\mergeDebugResources
+com.example.tasanno.orders.orders_app-debug-5 E:\MINI APP\orders_app\src\debug\res
+com.example.tasanno.orders.orders_app-main-6 E:\MINI APP\orders_app\src\main\res
+gradleHome-0 C:\Users\Jamshid-pc\.gradle

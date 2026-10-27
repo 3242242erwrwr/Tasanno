@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TASANNO ZAKAZLAR - Buyurtmalar Boshqaruvi</title>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- 1. SPLASH SCREEN (NEON GLOW) -->
+    <div id="splashScreen" class="splash-screen">
+        <div class="splash-content">
+            <div class="logo-box">
+                <img src="tasanno_orders_logo.png" class="splash-logo-img" alt="TASANNO ORDERS">
+            </div>
+            <h1 class="splash-title">TASANNO ZAKAZLAR</h1>
+            <p class="splash-subtitle">Buyurtmalarni Qabul Qilish Tizimi</p>
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="appContainer" class="app-container hidden">
+
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="brand-info">
+                <img src="tasanno_orders_logo.png" class="app-header-logo-img" alt="TASANNO">
+                <div>
+                    <h2 class="brand-name">TASANNO ZAKAZLAR</h2>
+                    <div class="live-status">
+                        <span class="live-dot"></span>
+                        <span id="connectionStatusText">Jonli aloqa faol</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="soundToggleBtn" class="icon-btn active" title="Ovozni yoqish/o'chirish">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+                <button id="refreshBtn" class="icon-btn" title="Yangilash">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- STATS BAR -->
+        <section class="stats-section">
+            <div class="stat-card">
+                <div class="stat-icon new-stat"><i class="fa-solid fa-bell"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Yangi zakazlar</span>
+                    <strong class="stat-value" id="statNewCount">0</strong>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon total-stat"><i class="fa-solid fa-receipt"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Jami zakazlar</span>
+                    <strong class="stat-value" id="statTotalCount">0</strong>
+                </div>
+            </div>
+            <div class="stat-card full-stat">
+                <div class="stat-icon sum-stat"><i class="fa-solid fa-wallet"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Bugungi umumiy summa:</span>
+                    <strong class="stat-value highlight" id="statTotalSum">0 so'm</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- FILTER TABS -->
+        <section class="filter-section">
+            <div class="filter-tabs">
+                <button class="filter-chip active" data-filter="all">Barchasi (<span id="countAll">0</span>)</button>
+                <button class="filter-chip" data-filter="Yangi">Yangi (<span id="countNew">0</span>)</button>
+                <button class="filter-chip" data-filter="Qabul qilindi">Qabul qilindi (<span id="countAccepted">0</span>)</button>
+                <button class="filter-chip" data-filter="Yetkazilmoqda">Yetkazilmoqda (<span id="countDelivering">0</span>)</button>
+                <button class="filter-chip" data-filter="Yetkazildi">Yetkazildi (<span id="countDelivered">0</span>)</button>
+            </div>
+        </section>
+
+        <!-- ORDERS LIST -->
+        <main class="orders-section">
+            <div id="ordersContainer" class="orders-container">
+                <!-- Orders will be rendered here dynamically -->
+            </div>
+        </main>
+    </div>
+
+    <!-- AUDIO ALERT SOUND (Web Audio API synthesis fallback) -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
