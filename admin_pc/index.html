@@ -553,74 +553,6 @@
             width: fit-content;
         }
 
-        /* CHAT LAYOUT */
-        .chat-container-layout {
-            display: grid;
-            grid-template-columns: 300px 1fr;
-            gap: 20px;
-            height: 650px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 20px;
-            overflow: hidden;
-        }
-
-        .chat-threads-sidebar {
-            background: var(--bg-primary);
-            border-right: 1px solid var(--border-color);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .thread-item {
-            padding: 12px;
-            border-radius: 12px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .thread-item.active, .thread-item:hover {
-            border-color: var(--accent-color);
-            background: rgba(59, 130, 246, 0.1);
-        }
-
-        .chat-main-area {
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .chat-header {
-            padding: 16px 24px;
-            border-bottom: 1px solid var(--border-color);
-            background: var(--bg-primary);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .chat-messages-scroll {
-            flex: 1;
-            padding: 24px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            background: var(--bg-secondary);
-        }
-
-        .chat-input-bar {
-            padding: 16px 24px;
-            border-top: 1px solid var(--border-color);
-            background: var(--bg-primary);
-            display: flex;
-            gap: 12px;
-        }
-
         /* MODAL */
         .modal-overlay {
             position: fixed;
@@ -719,11 +651,6 @@
                 <i class="fa-solid fa-motorcycle"></i>
                 <span>Kuryerlar</span>
                 <span id="pendingCouriersBadge" style="background:#ef4444; color:white; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; margin-left:auto; display:none;">0</span>
-            </li>
-            <li class="nav-item" onclick="switchTab('chat')">
-                <i class="fa-solid fa-comments"></i>
-                <span>Kuryerlar Chat</span>
-                <span id="unreadAdminChatBadge" style="background:#ef4444; color:white; font-size:10px; font-weight:800; padding:2px 7px; border-radius:10px; margin-left:auto; display:none;">0</span>
             </li>
             <li class="nav-item" onclick="switchTab('users')">
                 <i class="fa-solid fa-users"></i>
@@ -866,47 +793,7 @@
             </div>
         </section>
 
-        <!-- TAB 3: LIVE COURIER CHAT -->
-        <section id="tab-chat" class="tab-section">
-            <div class="chat-container-layout">
-                <!-- THREADS SIDEBAR -->
-                <div class="chat-threads-sidebar">
-                    <h4 style="font-size:14px; font-weight:800; color:#60a5fa; margin-bottom:8px;"><i class="fa-solid fa-comments"></i> Kuryerlar</h4>
-                    <div id="chatThreadsContainer" style="display:flex; flex-direction:column; gap:8px; overflow-y:auto;">
-                        <!-- Threads rendered dynamically -->
-                    </div>
-                </div>
-
-                <!-- MAIN CHAT MESSAGES PANEL -->
-                <div class="chat-main-area">
-                    <div class="chat-header">
-                        <div>
-                            <h3 id="chatHeaderTitle" style="font-size:16px; font-weight:800;">Kuryer bilan Chat</h3>
-                            <span id="chatHeaderSub" style="font-size:12px; color:var(--text-muted);">Suhbatni boshlash uchun chapdan kuryerni tanlang</span>
-                        </div>
-                        <button class="btn btn-danger" style="padding:6px 12px; font-size:12px;" onclick="clearAllMessages()">
-                            <i class="fa-solid fa-trash"></i> Chatni Tozalash
-                        </button>
-                    </div>
-
-                    <div id="adminChatScrollBox" class="chat-messages-scroll">
-                        <div style="text-align:center; padding:40px; color:var(--text-muted);">
-                            <i class="fa-solid fa-comments" style="font-size:40px; margin-bottom:12px; color:#3b82f6;"></i>
-                            <p>Kuryerlar yozgan xabarlar bu yerda ko'rinadi</p>
-                        </div>
-                    </div>
-
-                    <div class="chat-input-bar">
-                        <input type="text" id="adminChatInput" placeholder="Kuryerga javob yozing..." class="form-control" style="flex:1;">
-                        <button class="btn btn-primary" onclick="sendAdminReply()">
-                            <i class="fa-solid fa-paper-plane"></i> Yuborish
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 4: USERS MANAGEMENT -->
+        <!-- TAB 3: USERS MANAGEMENT -->
         <section id="tab-users" class="tab-section">
             <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
@@ -920,7 +807,7 @@
             </div>
         </section>
 
-        <!-- TAB 5: PRODUCTS MANAGEMENT -->
+        <!-- TAB 4: PRODUCTS MANAGEMENT -->
         <section id="tab-products" class="tab-section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3>Do'kon Mahsulotlari Ro'yxati</h3>
@@ -934,7 +821,7 @@
             </div>
         </section>
 
-        <!-- TAB 6: SYSTEM MONITOR -->
+        <!-- TAB 5: SYSTEM MONITOR -->
         <section id="tab-system" class="tab-section">
             <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
                 <h3>Tizim Holati va Loglar</h3>
@@ -951,6 +838,26 @@
         </section>
     </main>
 
+    <!-- ADMIN COURIER CHAT MODAL -->
+    <div id="adminCourierChatModal" class="modal-overlay hidden">
+        <div class="modal-card" style="max-width: 550px; height: 600px; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="modalChatCourierName" style="color:#60a5fa;"><i class="fa-solid fa-comments"></i> Kuryer Bilan Chat</h3>
+                    <span id="modalChatCourierPhone" style="font-size:12px; color:var(--text-muted);">Tel: +998...</span>
+                </div>
+                <button class="btn btn-secondary" style="padding:4px 8px;" onclick="closeAdminCourierChatModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div id="modalChatMessagesBox" style="flex:1; padding:16px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; background:var(--bg-primary); border-radius:12px; margin-bottom:12px;">
+                <!-- Messages -->
+            </div>
+            <div style="display:flex; gap:8px;">
+                <input type="text" id="modalChatInput" placeholder="Kuryerga xabaringizni yozing..." class="form-control" style="flex:1;" onkeypress="if(event.key==='Enter') sendAdminCourierModalMsg()">
+                <button class="btn btn-primary" onclick="sendAdminCourierModalMsg()"><i class="fa-solid fa-paper-plane"></i> Yuborish</button>
+            </div>
+        </div>
+    </div>
+
     <!-- TOAST -->
     <div id="toast" class="toast hidden">
         <i class="fa-solid fa-circle-check"></i>
@@ -958,14 +865,15 @@
     </div>
 
     <script>
-        const API_BASE = 'https://tasanno-im7q.onrender.com';
+        const API_BASE = window.location.origin.includes('http') ? window.location.origin : 'https://tasanno-im7q.onrender.com';
 
         let orders = [];
         let products = [];
         let users = [];
         let couriers = [];
         let messages = [];
-        let selectedCourierPhone = null;
+        let activeChatCourierPhone = null;
+        let activeChatCourierName = null;
         let currentFilter = 'all';
         let isSoundEnabled = true;
         let previousOrdersHash = "";
@@ -1043,26 +951,19 @@
                 document.querySelectorAll('.nav-item')[1].classList.add('active');
                 document.getElementById('tab-couriers').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Kuryerlar Boshqaruvi";
-                document.getElementById('tabSub').textContent = "Ilovaga ulangan kuryerlar ro'yxati va ruxsat berish";
-            } else if (tab === 'chat') {
-                document.querySelectorAll('.nav-item')[2].classList.add('active');
-                document.getElementById('tab-chat').classList.add('active');
-                document.getElementById('tabTitle').textContent = "Kuryerlar Bilan Jonli Chat";
-                document.getElementById('tabSub').textContent = "Kuryerlar tomonidan yuborilgan xabarlarga javob qaytarish";
-                const badge = document.getElementById('unreadAdminChatBadge');
-                if (badge) badge.style.display = 'none';
+                document.getElementById('tabSub').textContent = "Ilovaga ulangan kuryerlar ro'yxati, xabar yozish va ruxsat berish";
             } else if (tab === 'users') {
-                document.querySelectorAll('.nav-item')[3].classList.add('active');
+                document.querySelectorAll('.nav-item')[2].classList.add('active');
                 document.getElementById('tab-users').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Mijozlar Boshqaruvi";
                 document.getElementById('tabSub').textContent = "Ilovaga ulangan va ro'yxatdan o'tgan foydalanuvchilar";
             } else if (tab === 'products') {
-                document.querySelectorAll('.nav-item')[4].classList.add('active');
+                document.querySelectorAll('.nav-item')[3].classList.add('active');
                 document.getElementById('tab-products').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Mahsulotlar Boshqaruvi";
                 document.getElementById('tabSub').textContent = "Tasanno do'konidagi mahsulotlarni qo'shish va o'chirish";
             } else {
-                document.querySelectorAll('.nav-item')[5].classList.add('active');
+                document.querySelectorAll('.nav-item')[4].classList.add('active');
                 document.getElementById('tab-system').classList.add('active');
                 document.getElementById('tabTitle').textContent = "Tizim Statistika va Loglar";
                 document.getElementById('tabSub').textContent = "Render Cloud server holati";
@@ -1164,17 +1065,11 @@
                                 if (last.sender === 'Courier') {
                                     playChime();
                                     showToast(`💬 ${last.courierName}dan yangi xabar!`);
-                                    const badge = document.getElementById('unreadAdminChatBadge');
-                                    if (badge) {
-                                        badge.textContent = '!';
-                                        badge.style.display = 'inline-block';
-                                    }
                                 }
                             }
                             previousMessagesHash = currentHash;
                             messages = data;
-                            renderChatThreads();
-                            renderAdminChatBox();
+                            renderAdminCourierModalChat();
                             updateStats();
                         }
                     }
@@ -1182,12 +1077,29 @@
             } catch(e) {}
         }
 
-        async function sendAdminReply() {
-            const input = document.getElementById('adminChatInput');
-            const text = input ? input.value.trim() : '';
-            if (!text) return;
+        function openCourierChatModal(phone, name) {
+            activeChatCourierPhone = phone;
+            activeChatCourierName = name;
+            const modal = document.getElementById('adminCourierChatModal');
+            const title = document.getElementById('modalChatCourierName');
+            const sub = document.getElementById('modalChatCourierPhone');
 
-            const selectedCourier = couriers.find(c => c.phone === selectedCourierPhone || (c.phone && c.phone.replace(/\D/g, '') === (selectedCourierPhone || '').replace(/\D/g, '')));
+            if (title) title.innerHTML = `<i class="fa-solid fa-comments"></i> Chat: ${name}`;
+            if (sub) sub.textContent = `Tel: ${phone}`;
+            if (modal) modal.classList.remove('hidden');
+
+            renderAdminCourierModalChat();
+        }
+
+        function closeAdminCourierChatModal() {
+            const modal = document.getElementById('adminCourierChatModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        async function sendAdminCourierModalMsg() {
+            const input = document.getElementById('modalChatInput');
+            const text = input ? input.value.trim() : '';
+            if (!text || !activeChatCourierPhone) return;
 
             try {
                 const res = await fetch(`${API_BASE}/api/messages`, {
@@ -1195,8 +1107,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         sender: 'Admin',
-                        courierName: selectedCourier ? selectedCourier.name : 'Kuryer',
-                        courierPhone: selectedCourierPhone || (couriers[0] ? couriers[0].phone : ''),
+                        courierName: activeChatCourierName || 'Kuryer',
+                        courierPhone: activeChatCourierPhone,
                         text: text
                     })
                 });
@@ -1208,95 +1120,21 @@
             } catch(e){ showToast("Xatolik yuz berdi"); }
         }
 
-        async function clearAllMessages() {
-            if (confirm("Rostdan ham barcha chat xabarlarini o'chirmoqchisiz?")) {
-                try {
-                    const res = await fetch(`${API_BASE}/api/messages`, { method: 'DELETE' });
-                    if (res.ok) {
-                        showToast("Chat tozalandi");
-                        previousMessagesHash = "";
-                        loadMessages();
-                    }
-                } catch(e){}
-            }
-        }
+        function renderAdminCourierModalChat() {
+            const box = document.getElementById('modalChatMessagesBox');
+            if (!box || !activeChatCourierPhone) return;
 
-        function renderChatThreads() {
-            const container = document.getElementById('chatThreadsContainer');
-            if (!container) return;
-            container.innerHTML = '';
-
-            const courierMap = new Map();
-            messages.forEach(m => {
-                const key = m.courierPhone || m.courierName;
-                if (!courierMap.has(key)) {
-                    courierMap.set(key, { name: m.courierName, phone: m.courierPhone, lastText: m.text, time: m.timestamp });
-                } else {
-                    const item = courierMap.get(key);
-                    item.lastText = m.text;
-                    item.time = m.timestamp;
-                }
-            });
-
-            if (couriers.length > 0) {
-                couriers.forEach(c => {
-                    const key = c.phone || c.name;
-                    if (!courierMap.has(key)) {
-                        courierMap.set(key, { name: c.name, phone: c.phone, lastText: 'Suhbat yo\'q', time: '' });
-                    }
-                });
-            }
-
-            if (courierMap.size === 0) {
-                container.innerHTML = `<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:12px;">Hozircha kuryerlar yo'q</div>`;
-                return;
-            }
-
-            if (!selectedCourierPhone && courierMap.size > 0) {
-                selectedCourierPhone = Array.from(courierMap.values())[0].phone;
-            }
-
-            courierMap.forEach((info, phone) => {
-                const isSelected = phone === selectedCourierPhone;
-                const div = document.createElement('div');
-                div.className = `thread-item ${isSelected ? 'active' : ''}`;
-                div.onclick = () => {
-                    selectedCourierPhone = phone;
-                    renderChatThreads();
-                    renderAdminChatBox();
-                };
-                div.innerHTML = `
-                    <div style="font-weight:700; font-size:13px; color:white;">${info.name}</div>
-                    <div style="font-size:11px; color:#60a5fa;">${info.phone}</div>
-                    <div style="font-size:11px; color:var(--text-muted); margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${info.lastText}</div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function renderAdminChatBox() {
-            const box = document.getElementById('adminChatScrollBox');
-            const title = document.getElementById('chatHeaderTitle');
-            const sub = document.getElementById('chatHeaderSub');
-            if (!box) return;
-
-            const selectedCourier = couriers.find(c => c.phone === selectedCourierPhone || (c.phone && c.phone.replace(/\D/g, '') === (selectedCourierPhone || '').replace(/\D/g, '')));
-
-            if (title) title.textContent = selectedCourier ? `Chat: ${selectedCourier.name}` : "Kuryer bilan Chat";
-            if (sub) sub.textContent = selectedCourier ? `Tel: ${selectedCourier.phone}` : "Suhbatlashish uchun chapdan kuryerni tanlang";
-
+            const cleanActivePhone = activeChatCourierPhone.replace(/\D/g, '');
             const filteredMsgs = messages.filter(m => {
-                if (!selectedCourierPhone) return true;
-                const cClean = selectedCourierPhone.replace(/\D/g, '');
                 const mClean = (m.courierPhone || '').replace(/\D/g, '');
-                return mClean === cClean || m.courierName === (selectedCourier ? selectedCourier.name : '');
+                return mClean === cleanActivePhone || m.courierName === activeChatCourierName;
             });
 
             box.innerHTML = '';
             if (filteredMsgs.length === 0) {
                 box.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-muted);">
-                    <i class="fa-solid fa-comments" style="font-size:40px; margin-bottom:12px; color:#3b82f6;"></i>
-                    <p>Ushbu kuryer bilan hali xabarlar yo'q</p>
+                    <i class="fa-solid fa-comments" style="font-size:36px; margin-bottom:10px; color:#3b82f6;"></i>
+                    <p>Ushbu kuryer bilan hali xabarlar yo'q. Birinchi xabaringizni yozing!</p>
                 </div>`;
                 return;
             }
@@ -1312,7 +1150,7 @@
                     <div style="font-size:10px; color:var(--text-muted); margin-bottom:2px; font-weight:600;">
                         ${isAdmin ? '🛡 Bosh Admin' : m.courierName} • ${m.timestamp || ''}
                     </div>
-                    <div style="max-width:70%; padding:10px 14px; border-radius:${isAdmin ? '16px 16px 2px 16px' : '16px 16px 16px 2px'}; background:${isAdmin ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#334155'}; color:white; font-size:14px; line-height:1.4;">
+                    <div style="max-width:80%; padding:10px 14px; border-radius:${isAdmin ? '16px 16px 2px 16px' : '16px 16px 16px 2px'}; background:${isAdmin ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#334155'}; color:white; font-size:13.5px; line-height:1.4;">
                         ${m.text}
                     </div>
                 `;
@@ -1495,7 +1333,6 @@
             } else {
                 approvedCouriers.forEach(c => {
                     const courierOrdersCount = orders.filter(o => o.courierPhone === c.phone || o.courierName === c.name).length;
-                    const cleanPhone = (c.phone || '').replace(/\D/g, '');
                     const card = document.createElement('div');
                     card.className = 'user-card';
                     card.innerHTML = `
@@ -1507,7 +1344,9 @@
                             <div class="user-phone"><i class="fa-solid fa-phone"></i> ${c.phone}</div>
                             <div class="user-meta"><strong>Qabul qilgan zakazlari:</strong> ${courierOrdersCount} ta zakaz olgan</div>
                         </div>
-                        ${cleanPhone ? `<a href="tel:+${cleanPhone}" class="phone-link"><i class="fa-solid fa-phone"></i> Qo'ng'iroq</a>` : ''}
+                        <button class="btn btn-primary" style="padding:8px 14px; font-size:12px; background:#3b82f6;" onclick="openCourierChatModal('${c.phone}', '${c.name}')">
+                            <i class="fa-solid fa-comments"></i> Xabar Yozish
+                        </button>
                     `;
                     approvedContainer.appendChild(card);
                 });
