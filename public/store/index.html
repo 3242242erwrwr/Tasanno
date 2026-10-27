@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TASANNO - Onlayn Do'kon</title>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- 1. BRAND SPLASH SCREEN -->
+    <div id="splashScreen" class="splash-screen">
+        <div class="splash-content">
+            <div class="logo-box">
+                <img src="tasanno_logo.png" class="splash-logo-img" alt="TASANNO" onerror="this.src='https://cdn-icons-png.flaticon.com/512/3135/3135715.png'">
+            </div>
+            <h1 class="splash-title">TASANNO</h1>
+            <p class="splash-subtitle">Zamonaviy Online Do'kon</p>
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="appContainer" class="app-container hidden">
+
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="brand-info">
+                <h2 class="brand-name">TASANNO</h2>
+            </div>
+            <div class="header-actions">
+                <!-- USER PROFILE BADGE (Avatar, Name & ID) -->
+                <div id="userProfileBadge" class="user-profile-badge" title="Mening Profilim">
+                    <img id="userHeaderAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="user-header-avatar" alt="User">
+                    <div class="user-header-info">
+                        <span id="userHeaderName" class="user-header-name">Kiring</span>
+                        <span id="userHeaderId" class="user-header-id">#ID-...</span>
+                    </div>
+                </div>
+                <button id="adminBtn" class="icon-btn admin-btn" title="Admin Kirish">
+                    <i class="fa-solid fa-user-shield"></i>
+                </button>
+                <button id="cartBtn" class="icon-btn cart-btn">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                    <span id="cartBadge" class="cart-badge">0</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- ADMIN BANNER (Visible if logged in as Admin) -->
+        <div id="adminBanner" class="admin-banner hidden">
+            <div class="admin-banner-text">
+                <i class="fa-solid fa-user-check"></i> Admin Rejimi Faol
+            </div>
+            <div>
+                <button id="openAddProductModalBtn" class="admin-action-btn">
+                    <i class="fa-solid fa-plus"></i> Yangi Mahsulot
+                </button>
+                <button id="logoutAdminBtn" class="admin-action-btn danger" title="Chiqish">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- SEARCH & CATEGORIES -->
+        <section class="controls-section">
+            <div class="search-box">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="searchInput" placeholder="Mahsulotlarni qidirish...">
+            </div>
+            <div class="categories-wrapper" id="categoriesContainer">
+                <!-- Categories rendered by JS -->
+            </div>
+        </section>
+
+        <!-- PRODUCTS GRID -->
+        <main class="products-section">
+            <div id="productsGrid" class="products-grid">
+                <!-- Products rendered by JS -->
+            </div>
+        </main>
+    </div>
+
+    <!-- AUTHENTICATION / PHONE LOGIN MODAL -->
+    <div id="authModal" class="modal-overlay hidden">
+        <div class="modal-content center-modal auth-modal-content">
+            <div class="auth-header">
+                <div class="auth-icon-box">
+                    <i class="fa-solid fa-mobile-screen-button"></i>
+                </div>
+                <h3>Tizimga Kirish</h3>
+                <p>Do'kondan foydalanish uchun telefon raqamingizni kiriting</p>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label><i class="fa-solid fa-user"></i> Ismingiz:</label>
+                    <input type="text" id="authNameInput" placeholder="Ismingizni kiriting (masalan: Jamshid)">
+                </div>
+                <div class="input-group">
+                    <label><i class="fa-solid fa-phone"></i> O'zbekiston Telefon raqamingiz:</label>
+                    <input type="tel" id="authPhoneInput" placeholder="+998 (90) 123-45-67" maxlength="19">
+                    <small style="display:block;font-size:11px;color:var(--text-muted);margin-top:3px;">
+                        Faqat rasmiy O'zbekiston raqamlari (+998 XX YYY-YY-YY)
+                    </small>
+                </div>
+                <div class="input-group">
+                    <label><i class="fa-solid fa-image"></i> Profil Avatarini Tanlang:</label>
+                    <div class="avatar-selector">
+                        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" class="avatar-option selected" data-avatar="https://cdn-icons-png.flaticon.com/512/3135/3135715.png">
+                        <img src="https://cdn-icons-png.flaticon.com/512/4140/4140048.png" class="avatar-option" data-avatar="https://cdn-icons-png.flaticon.com/512/4140/4140048.png">
+                        <img src="https://cdn-icons-png.flaticon.com/512/4140/4140047.png" class="avatar-option" data-avatar="https://cdn-icons-png.flaticon.com/512/4140/4140047.png">
+                        <img src="https://cdn-icons-png.flaticon.com/512/4140/4140061.png" class="avatar-option" data-avatar="https://cdn-icons-png.flaticon.com/512/4140/4140061.png">
+                        <img src="https://cdn-icons-png.flaticon.com/512/3135/3135789.png" class="avatar-option" data-avatar="https://cdn-icons-png.flaticon.com/512/3135/3135789.png">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="submitAuthBtn" class="btn-primary full-width">
+                    <i class="fa-solid fa-right-to-bracket"></i> Tizimga Kirish
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- USER PROFILE VIEW MODAL -->
+    <div id="userProfileModal" class="modal-overlay hidden">
+        <div class="modal-content center-modal">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-id-card"></i> Profil Ma'lumotlari</h3>
+                <button id="closeUserProfileBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body text-center">
+                <div class="profile-avatar-wrapper">
+                    <img id="profileModalAvatar" src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" alt="Avatar" class="profile-big-avatar">
+                </div>
+                <h3 id="profileModalName" class="profile-name">Jamshid</h3>
+                <div id="profileModalId" class="profile-id-tag">Mijoz ID: #ID-849201</div>
+                <div class="profile-details-card">
+                    <div class="profile-detail-row">
+                        <span><i class="fa-solid fa-phone"></i> Telefon:</span>
+                        <strong id="profileModalPhone">+998 90 123 45 67</strong>
+                    </div>
+                    <div class="profile-detail-row">
+                        <span><i class="fa-solid fa-bag-shopping"></i> Buyurtmalar:</span>
+                        <strong id="profileModalOrdersCount">0 ta</strong>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="logoutUserBtn" class="btn-secondary full-width danger-text">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Profilni Almashtirish / Chiqish
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PRODUCT DETAIL & INSTALLMENT CALCULATOR MODAL -->
+    <div id="productDetailModal" class="modal-overlay hidden">
+        <div class="modal-content drawer product-detail-drawer">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-circle-info"></i> Mahsulot Tafsilotlari</h3>
+                <button id="closeDetailModalBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-img-container">
+                    <img id="detailProdImg" src="" alt="Mahsulot" class="detail-prod-img">
+                    <span id="detailProdCategory" class="product-category-tag">Category</span>
+                </div>
+                <h2 id="detailProdTitle" class="detail-prod-title">iPhone 15 Pro Max</h2>
+                <div id="detailProdPrice" class="detail-prod-price">15 400 000 so'm</div>
+                <p id="detailProdDesc" class="detail-prod-desc">Mahsulot tavsifi...</p>
+
+                <!-- MUDDATLI TO'LOV (BO'LIB TO'LASH) BO'LIMI -->
+                <div class="installment-section">
+                    <div class="installment-header">
+                        <h4><i class="fa-solid fa-calculator"></i> Muddatli To'lov (Bo'lib to'lash)</h4>
+                        <span class="installment-badge">0% Boshlang'ich</span>
+                    </div>
+                    <p class="installment-desc">O'zingizga qulay muddatni tanlang:</p>
+
+                    <div class="installment-options">
+                        <button class="installment-btn active" data-months="3">
+                            <span class="inst-month">3 Oy</span>
+                            <span class="inst-price" id="instPrice3">0 so'm/oy</span>
+                        </button>
+                        <button class="installment-btn" data-months="6">
+                            <span class="inst-month">6 Oy</span>
+                            <span class="inst-price" id="instPrice6">0 so'm/oy</span>
+                        </button>
+                        <button class="installment-btn" data-months="12">
+                            <span class="inst-month">12 Oy</span>
+                            <span class="inst-price" id="instPrice12">0 so'm/oy</span>
+                        </button>
+                    </div>
+
+                    <div class="installment-summary-box">
+                        <div class="summary-row">
+                            <span>Tanlangan muddat:</span>
+                            <strong id="selectedInstMonthText">3 Oy</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Oylik to'lov:</span>
+                            <strong id="selectedInstMonthlyPrice" class="highlight-price">0 so'm/oy</strong>
+                        </div>
+                        <div class="summary-row">
+                            <span>Boshlang'ich to'lov:</span>
+                            <span class="free-text">0 so'm (Bepul)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ADMIN ACTION BUTTONS (Only visible for Admin) -->
+                <div id="detailAdminActions" class="detail-admin-actions hidden">
+                    <button type="button" id="detailEditBtn" class="detail-admin-btn edit">
+                        <i class="fa-solid fa-pen-to-square"></i> Mahsulotni Tahrirlash
+                    </button>
+                    <button type="button" id="detailDeleteBtn" class="detail-admin-btn delete">
+                        <i class="fa-solid fa-trash"></i> O'chirish
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer detail-footer">
+                <button id="addCartCashBtn" class="btn-secondary flex-1">
+                    <i class="fa-solid fa-cart-plus"></i> Naqdga Olish
+                </button>
+                <button id="addCartInstallmentBtn" class="btn-primary flex-1">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Bo'lib To'lash
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CART MODAL -->
+    <div id="cartModal" class="modal-overlay hidden">
+        <div class="modal-content drawer">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-cart-shopping"></i> Savatchangiz</h3>
+                <button id="closeCartBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="cartItemsContainer" class="cart-items-container">
+                    <!-- Cart items rendered by JS -->
+                </div>
+                <div id="cartEmptyState" class="empty-state hidden">
+                    <i class="fa-solid fa-basket-shopping empty-icon"></i>
+                    <p>Savatchangiz bo'sh</p>
+                </div>
+            </div>
+            <div class="modal-footer cart-footer" id="cartFooter">
+                <div class="checkout-form">
+                    <h4><i class="fa-solid fa-credit-card"></i> To'lov Usuli</h4>
+                    <div class="payment-tabs">
+                        <button type="button" class="pay-tab-btn active" id="payCashTabBtn" onclick="selectCartPaymentType('cash')">
+                            <i class="fa-solid fa-money-bill-wave"></i> Naqd To'lash
+                        </button>
+                        <button type="button" class="pay-tab-btn" id="payInstallmentTabBtn" onclick="selectCartPaymentType('installment')">
+                            <i class="fa-solid fa-calendar-check"></i> Bo'lib To'lash
+                        </button>
+                    </div>
+
+                    <div id="cartInstallmentOptions" class="cart-installment-options hidden">
+                        <label class="inst-label"><i class="fa-solid fa-percent"></i> Muddatni tanlang (0% Boshlang'ich):</label>
+                        <div class="installment-options">
+                            <button type="button" class="installment-btn active" id="cartInstBtn3" onclick="selectCartInstallmentMonths(3)">
+                                <span class="inst-month">3 Oy</span>
+                                <span class="inst-price" id="cartInstPrice3">0 so'm/oy</span>
+                            </button>
+                            <button type="button" class="installment-btn" id="cartInstBtn6" onclick="selectCartInstallmentMonths(6)">
+                                <span class="inst-month">6 Oy</span>
+                                <span class="inst-price" id="cartInstPrice6">0 so'm/oy</span>
+                            </button>
+                            <button type="button" class="installment-btn" id="cartInstBtn12" onclick="selectCartInstallmentMonths(12)">
+                                <span class="inst-month">12 Oy</span>
+                                <span class="inst-price" id="cartInstPrice12">0 so'm/oy</span>
+                            </button>
+                        </div>
+                        <div class="cart-inst-summary">
+                            <span>Har oylik to'lov:</span>
+                            <strong id="cartMonthlyPaymentText">0 so'm / oy</strong>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 14px;"><i class="fa-solid fa-user"></i> Buyurtma Malumotlari</h4>
+                    <div class="input-group">
+                        <label for="customerName">Ismingiz:</label>
+                        <input type="text" id="customerName" placeholder="Ismingizni kiriting">
+                    </div>
+                    <div class="input-group">
+                        <label for="customerPhone">Telefon raqamingiz:</label>
+                        <input type="tel" id="customerPhone" placeholder="+998 90 123 45 67">
+                    </div>
+                    <div class="input-group">
+                        <label for="customerAddress">Yetkazib berish manzili / Izoh:</label>
+                        <textarea id="customerAddress" rows="2" placeholder="Shahar, tuman, ko'cha yoki mo'ljal"></textarea>
+                    </div>
+                </div>
+                <div class="total-bar">
+                    <span>Umumiy summa:</span>
+                    <strong id="cartTotalPrice">0 so'm</strong>
+                </div>
+                <button id="submitOrderBtn" class="btn-primary full-width">
+                    <i class="fa-solid fa-paper-plane"></i> Buyurtmani Tasdiqlash
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN LOGIN MODAL -->
+    <div id="adminLoginModal" class="modal-overlay hidden">
+        <div class="modal-content center-modal">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-lock"></i> Admin Kirish</h3>
+                <button id="closeAdminLoginBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <input type="password" id="adminPinInput" placeholder="Maxfiy PIN-kod" maxlength="12">
+                </div>
+                <p id="adminLoginError" class="error-msg hidden">Xato PIN-kod kiritildi!</p>
+            </div>
+            <div class="modal-footer">
+                <button id="loginAdminSubmitBtn" class="btn-primary full-width">Kirish</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD/EDIT PRODUCT MODAL (ADMIN ONLY) -->
+    <div id="productModal" class="modal-overlay hidden">
+        <div class="modal-content center-modal">
+            <div class="modal-header">
+                <h3 id="productModalTitle"><i class="fa-solid fa-plus-circle"></i> Yangi Mahsulot</h3>
+                <button id="closeProductModalBtn" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="productForm">
+                    <input type="hidden" id="editProductId">
+                    <div class="input-group">
+                        <label>Mahsulot Nomi:</label>
+                        <input type="text" id="prodTitle" placeholder="Masalan: iPhone 15 Pro" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Narxi (so'mda):</label>
+                        <input type="number" id="prodPrice" placeholder="12500000" required>
+                    </div>
+                    <div class="input-group">
+                        <label>Kategoriya:</label>
+                        <select id="prodCategory" required>
+                            <option value="Smartfonlar">Smartfonlar</option>
+                            <option value="Kiyimlar">Kiyimlar</option>
+                            <option value="Aksessuarlar">Aksessuarlar</option>
+                            <option value="Oziq-ovqat">Oziq-ovqat</option>
+                        </select>
+                    </div>
+                    <div class="input-group">
+                        <label>Rasm URL Manzili:</label>
+                        <input type="url" id="prodImage" placeholder="https://..." required>
+                    </div>
+                    <div class="input-group">
+                        <label>Tavsif (Tavsifi):</label>
+                        <textarea id="prodDesc" rows="3" placeholder="Mahsulot haqida ma'lumot..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="saveProductBtn" class="btn-primary full-width">Saqlash</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ORDER SUCCESS MODAL -->
+    <div id="orderSuccessModal" class="modal-overlay hidden" style="z-index: 99999; display: flex; align-items: center; justify-content: center;">
+        <div class="modal-content center-modal success-dialog-card" style="text-align: center; max-width: 320px; padding: 28px 22px; border-radius: 24px; background: rgba(14, 22, 38, 0.95); border: 1px solid rgba(0, 242, 254, 0.35); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(0, 242, 254, 0.2); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);">
+            <div style="width: 76px; height: 76px; margin: 0 auto 16px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); border: 2px solid #10b981; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(16, 185, 129, 0.45);">
+                <i class="fa-solid fa-check" style="font-size: 38px; color: #10b981;"></i>
+            </div>
+            <h3 style="color: #ffffff; font-size: 21px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.3px;">Buyurtma Qabul Qilindi!</h3>
+            <p style="color: rgba(255, 255, 255, 0.72); font-size: 13.5px; line-height: 1.5; margin-bottom: 14px;">
+                Rahmat! Buyurtmangiz muvaffaqiyatli qabul qilindi. Tez orada operator siz bilan bog'lanadi.
+            </p>
+            <div id="successOrderNumberBadge" style="background: rgba(0, 242, 254, 0.08); border: 1px dashed rgba(0, 242, 254, 0.5); padding: 8px 16px; border-radius: 12px; display: inline-block; margin-bottom: 22px; font-weight: 800; color: #00f2fe; font-size: 16px; letter-spacing: 0.8px;">
+                #ORD-000000
+            </div>
+            <button id="closeOrderSuccessBtn" class="btn-primary full-width" style="border-radius: 14px; padding: 13px; font-size: 15px; font-weight: 700; background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: #070a13; border: none; box-shadow: 0 4px 18px rgba(0, 242, 254, 0.4); cursor: pointer;">
+                Tushunarli
+            </button>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION TOAST -->
+    <div id="toast" class="toast hidden"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

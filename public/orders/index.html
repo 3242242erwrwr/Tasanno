@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TASANNO ZAKAZLAR - Real-Time Receiver</title>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- SPLASH SCREEN -->
+    <div id="splashScreen" class="splash-screen">
+        <div class="splash-content">
+            <div class="logo-box">
+                <i class="fa-solid fa-truck-fast logo-icon"></i>
+            </div>
+            <h1 class="splash-title">TASANNO ZAKAZLAR</h1>
+            <p class="splash-subtitle">Real-Time Buyurtmalar Markazi</p>
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="appContainer" class="app-container hidden">
+
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="brand-info">
+                <div class="brand-icon-box">
+                    <i class="fa-solid fa-truck-fast"></i>
+                </div>
+                <div>
+                    <h2 class="brand-title">TASANNO ZAKAZLAR</h2>
+                    <span class="brand-subtitle"><i class="fa-solid fa-circle live-dot"></i> Live Sync Active</span>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button id="soundToggleBtn" class="icon-btn active" title="Ovozni yoqish/o'chirish">
+                    <i class="fa-solid fa-volume-high"></i>
+                </button>
+                <button id="refreshBtn" class="icon-btn" title="Yangilash">
+                    <i class="fa-solid fa-rotate-right"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- STATS OVERVIEW CARDS -->
+        <section class="stats-section">
+            <div class="stat-card new-card">
+                <div class="stat-icon-wrapper">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="statNewCount">0</span>
+                    <span class="stat-label">Yangi Kutilayotgan</span>
+                </div>
+            </div>
+
+            <div class="stat-card total-card">
+                <div class="stat-icon-wrapper">
+                    <i class="fa-solid fa-boxes-packing"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="statTotalCount">0</span>
+                    <span class="stat-label">Jami Buyurtmalar</span>
+                </div>
+            </div>
+
+            <div class="stat-card sum-card">
+                <div class="stat-icon-wrapper">
+                    <i class="fa-solid fa-sack-dollar"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="statTotalSum">0 so'm</span>
+                    <span class="stat-label">Jami Tushum Summasi</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- FILTER TABS -->
+        <section class="filter-section">
+            <div class="filter-chips-container">
+                <button class="filter-chip active" data-filter="all">
+                    Barchasi <span class="chip-count" id="countAll">0</span>
+                </button>
+                <button class="filter-chip chip-new" data-filter="Yangi">
+                    Yangi <span class="chip-count" id="countNew">0</span>
+                </button>
+                <button class="filter-chip chip-accepted" data-filter="Qabul qilindi">
+                    Qabul qilingan <span class="chip-count" id="countAccepted">0</span>
+                </button>
+                <button class="filter-chip chip-delivering" data-filter="Yetkazilmoqda">
+                    Yetkazilmoqda <span class="chip-count" id="countDelivering">0</span>
+                </button>
+                <button class="filter-chip chip-delivered" data-filter="Yetkazildi">
+                    Yetkazilgan <span class="chip-count" id="countDelivered">0</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ORDERS FEED CONTAINER -->
+        <main class="orders-section">
+            <div id="ordersContainer" class="orders-container">
+                <!-- Order cards rendered dynamically by app.js -->
+            </div>
+        </main>
+    </div>
+
+    <!-- NOTIFICATION TOAST -->
+    <div id="toast" class="toast hidden">
+        <i class="fa-solid fa-bell"></i>
+        <span id="toastMessage">Yangi buyurtma keldi!</span>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

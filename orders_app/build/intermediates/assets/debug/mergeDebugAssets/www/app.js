@@ -156,11 +156,11 @@ function startRealtimeSync() {
         console.error("SSE setup error", e);
     }
 
-    // 3. Fallback polling every 4 seconds
+    // 3. Ultra-fast auto polling every 1 second
     setInterval(() => {
         pollLatestOrders(false);
         pollRenderBackendOrders(false);
-    }, 4000);
+    }, 1000);
 }
 
 // POLL RENDER BACKEND ORDERS
@@ -170,14 +170,23 @@ async function pollRenderBackendOrders(showToastMsg = false) {
         if (!resp.ok) return;
         const backendOrders = await resp.json();
         if (Array.isArray(backendOrders)) {
-            let newFound = false;
-            backendOrders.forEach(ord => {
-                if (processIncomingOrder(ord)) {
-                    newFound = true;
+            const filteredBackend = backendOrders.filter(o => !deletedOrderIds.has(String(o.id)));
+            const isDifferent = JSON.stringify(orders.map(o => ({id: String(o.id), status: o.status}))) !==
+                                JSON.stringify(filteredBackend.map(o => ({id: String(o.id), status: o.status})));
+
+            if (isDifferent) {
+                if (filteredBackend.length > orders.length && orders.length >= 0) {
+                    playOrderChime();
                 }
-            });
-            if (newFound && showToastMsg) {
-                showToast("Yangi buyurtmalar Render serveridan yuklandi!");
+                orders = filteredBackend;
+                saveOrders();
+                renderOrders();
+                updateStats();
+                if (showToastMsg) {
+                    showToast("Buyurtmalar serverdan yangilandi!");
+                }
+            } else if (showToastMsg) {
+                showToast("Buyurtmalar ro'yxati yangi");
             }
         }
     } catch (e) {
@@ -245,6 +254,14 @@ function updateOrderStatus(orderId, newStatus) {
     saveOrders();
     renderOrders();
     updateStats();
+
+    // Sync status change to Render Backend Server
+    fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+    }).catch(e => console.warn("Backend status update error:", e));
+
     showToast(`Buyurtma #${orderId} holati: ${newStatus}`);
 }
 
@@ -259,6 +276,19 @@ function cancelAndRemoveOrder(orderId) {
     saveOrders();
     renderOrders();
     updateStats();
+
+    fetch(`${API_BASE_URL}/api/orders/${orderId}`, { method: 'DELETE' })
+        .catch(e => console.warn("Backend delete order error:", e));
+
+    showToast(`Buyurtma #${orderId} o'chirildi`);
+}
+
+    fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Bekor qilindi' })
+    }).catch(e => console.warn("Backend cancel order error:", e));
+
     showToast(`Buyurtma #${orderId} o'chirildi`);
 }
 
