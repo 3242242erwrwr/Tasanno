@@ -245,6 +245,26 @@ function setupListeners() {
             }
         });
     }
+
+    const logoutCourierBtn = document.getElementById('logoutCourierBtn');
+    if (logoutCourierBtn) {
+        logoutCourierBtn.addEventListener('click', handleCourierLogout);
+    }
+}
+
+function handleCourierLogout() {
+    if (confirm("Rostdan ham kuryer profildan chiqmoqchisiz?")) {
+        localStorage.removeItem('currentCourier');
+        currentCourier = null;
+        if (courierPollInterval) clearInterval(courierPollInterval);
+        document.getElementById('courierWaitingModal')?.classList.add('hidden');
+        document.getElementById('courierAuthModal')?.classList.remove('hidden');
+        const nameIn = document.getElementById('courierNameInput');
+        const phoneIn = document.getElementById('courierPhoneInput');
+        if (nameIn) nameIn.value = '';
+        if (phoneIn) phoneIn.value = '';
+        showToast("Kuryer profildan chiqildi");
+    }
 }
 
 let previousOrdersHash = "";
