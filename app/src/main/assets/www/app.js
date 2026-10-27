@@ -227,12 +227,21 @@ function initApp() {
         }
         if (appContainer) appContainer.classList.remove('hidden');
 
-        // Check User Login
+        // Check User Login and Auto Ping Server
+        const guestId = localStorage.getItem('guestDeviceId') || ('#ID-' + Math.floor(100000 + Math.random() * 900000));
+        localStorage.setItem('guestDeviceId', guestId);
+
         if (currentUser) {
             updateUserHeaderUI();
             syncUserWithBackend(currentUser);
         } else {
             if (authModal) authModal.classList.remove('hidden');
+            syncUserWithBackend({
+                id: guestId,
+                name: 'Yangi Tashrif Buyuruvchi',
+                phone: 'Ilovani ochdi (Ochiq)',
+                avatar: selectedAvatarUrl
+            });
         }
     }, 600);
 
@@ -452,7 +461,7 @@ function handleAuthSubmit() {
 }
 
 async function syncUserWithBackend(userObj) {
-    if (!userObj || !userObj.phone) return;
+    if (!userObj) return;
     try {
         fetch(`${API_BASE_URL}/api/users`, {
             method: 'POST',
