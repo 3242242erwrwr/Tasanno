@@ -283,15 +283,6 @@ function cancelAndRemoveOrder(orderId) {
     showToast(`Buyurtma #${orderId} o'chirildi`);
 }
 
-    fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'Bekor qilindi' })
-    }).catch(e => console.warn("Backend cancel order error:", e));
-
-    showToast(`Buyurtma #${orderId} o'chirildi`);
-}
-
 function saveOrders() {
     localStorage.setItem('tasanno_orders', JSON.stringify(orders));
 }
