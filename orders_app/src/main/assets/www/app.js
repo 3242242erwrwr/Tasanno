@@ -210,22 +210,9 @@ function updateOrderStatus(orderId, newStatus) {
     showToast(`Buyurtma #${orderId} holati: ${newStatus}`);
 }
 
-// CANCEL AND REMOVE FROM LIST
+// CANCEL ORDER (UPDATE STATUS TO 'Bekor qilindi')
 function cancelAndRemoveOrder(orderId) {
-    deletedOrderIds.add(String(orderId));
-    try {
-        localStorage.setItem('tasanno_deleted_orders', JSON.stringify(Array.from(deletedOrderIds)));
-    } catch (e) {}
-
-    orders = orders.filter(o => String(o.id) !== String(orderId));
-    saveOrders();
-    renderOrders();
-    updateStats();
-
-    fetch(`${API_BASE_URL}/api/orders/${orderId}`, { method: 'DELETE' })
-        .catch(e => console.warn("Backend delete order error:", e));
-
-    showToast(`Buyurtma #${orderId} o'chirildi`);
+    updateOrderStatus(orderId, 'Bekor qilindi');
 }
 
 function saveOrders() {
@@ -335,6 +322,12 @@ function renderOrders() {
                 ${ord.status === 'Yetkazildi' ? `
                     <div style="font-size:12px;color:var(--success-color);font-weight:700;width:100%;text-align:center;padding:4px;">
                         <i class="fa-solid fa-circle-check"></i> Buyurtma muvaffaqiyatli yetkazilgan
+                    </div>
+                ` : ''}
+
+                ${ord.status === 'Bekor qilindi' ? `
+                    <div style="font-size:12px;color:var(--danger-color);font-weight:700;width:100%;text-align:center;padding:4px;">
+                        <i class="fa-solid fa-circle-xmark"></i> Buyurtma bekor qilingan (Qabul qilinmadi)
                     </div>
                 ` : ''}
             </div>

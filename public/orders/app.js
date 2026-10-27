@@ -179,20 +179,7 @@ function updateOrderStatus(orderId, newStatus) {
 }
 
 function cancelAndRemoveOrder(orderId) {
-    deletedOrderIds.add(String(orderId));
-    try {
-        localStorage.setItem('tasanno_deleted_orders', JSON.stringify(Array.from(deletedOrderIds)));
-    } catch (e) {}
-
-    orders = orders.filter(o => String(o.id) !== String(orderId));
-    saveOrders();
-    renderOrders();
-    updateStats();
-
-    fetch(`${API_BASE_URL}/api/orders/${orderId}`, { method: 'DELETE' })
-        .catch(e => {});
-
-    showToast(`Buyurtma #${orderId} o'chirildi`);
+    updateOrderStatus(orderId, 'Bekor qilindi');
 }
 
 function saveOrders() {
