@@ -798,6 +798,51 @@ function handleAdminLogin() {
 }
 
 
+let currentAppUploadedImageBase64 = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80";
+
+function previewAppUploadedImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 600;
+                const MAX_HEIGHT = 600;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                currentAppUploadedImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+
+                const previewImg = document.getElementById('appUploadedImagePreview');
+                if (previewImg) {
+                    previewImg.src = currentAppUploadedImageBase64;
+                    previewImg.style.display = 'block';
+                }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
 function openEditProductModal(productId) {
     const p = products.find(item => item.id === productId);
     if (!p) return;
@@ -806,8 +851,13 @@ function openEditProductModal(productId) {
     document.getElementById('prodTitle').value = p.title;
     document.getElementById('prodPrice').value = p.price;
     document.getElementById('prodCategory').value = p.category;
-    document.getElementById('prodImage').value = p.image;
     document.getElementById('prodDesc').value = p.description || '';
+    currentAppUploadedImageBase64 = p.image;
+    const previewImg = document.getElementById('appUploadedImagePreview');
+    if (previewImg) {
+        previewImg.src = currentAppUploadedImageBase64;
+        previewImg.style.display = 'block';
+    }
 
     const titleElem = document.getElementById('productModalTitle');
     if (titleElem) {
@@ -822,7 +872,7 @@ function handleSaveProduct() {
     const title = document.getElementById('prodTitle').value.trim();
     const price = parseFloat(document.getElementById('prodPrice').value);
     const category = document.getElementById('prodCategory').value;
-    const image = document.getElementById('prodImage').value.trim() || 'https://via.placeholder.com/300';
+    const image = currentAppUploadedImageBase64 || 'https://via.placeholder.com/300';
     const description = document.getElementById('prodDesc').value.trim();
 
     if (!title || isNaN(price)) {

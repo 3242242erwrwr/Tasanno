@@ -878,68 +878,139 @@ function sendOrderToTelegramBot(orderData) {
 function openProductModalForAdd() {
     if (!productModal) return;
 
+    currentAppUploadedImageBase64 = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80";
+    const preview = document.getElementById('appUploadedImagePreview');
+    if (preview) preview.style.display = 'none';
+
     if (editProductId) editProductId.value = '';
     if (prodTitle) prodTitle.value = '';
     if (prodPrice) prodPrice.value = '';
     if (prodCategory) prodCategory.value = 'Smartfonlar';
-    if (prodImage) prodImage.value = '';
     if (prodDesc) prodDesc.value = '';
     if (productModalTitle) productModalTitle.innerHTML = '<i class="fa-solid fa-plus-circle"></i> Yangi Mahsulot Qo\'shish';
 
     productModal.classList.remove('hidden');
 }
 
-function openProductModalForEdit(id) {
-    const prod = products.find(p => p.id === id);
-    if (!prod || !productModal) return;
+let currentAppUploadedImageBase64 = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80";
 
-    if (editProductId) editProductId.value = prod.id;
-    if (prodTitle) prodTitle.value = prod.title;
-    if (prodPrice) prodPrice.value = prod.price;
-    if (prodCategory) prodCategory.value = prod.category || 'Smartfonlar';
-    if (prodImage) prodImage.value = prod.image;
-    if (prodDesc) prodDesc.value = prod.description || '';
-    if (productModalTitle) productModalTitle.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Mahsulotni Tahrirlash';
+function previewAppUploadedImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 600;
+                const MAX_HEIGHT = 600;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > height) {
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+                } else {
+                    if (height > MAX_HEIGHT) {
+                        width *= MAX_HEIGHT / height;
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                currentAppUploadedImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+
+                const previewImg = document.getElementById('appUploadedImagePreview');
+                if (previewImg) {
+                    previewImg.src = currentAppUploadedImageBase64;
+                    previewImg.style.display = 'block';
+                }
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function openProductModalForEdit(id) {
+    openEditProductModal(id);
+}
+
+function openEditProductModal(productId) {
+    const p = products.find(item => item.id === productId);
+    if (!p) return;
+
+    document.getElementById('editProductId').value = p.id;
+    document.getElementById('prodTitle').value = p.title;
+    document.getElementById('prodPrice').value = p.price;
+    document.getElementById('prodCategory').value = p.category;
+    document.getElementById('prodDesc').value = p.description || '';
+    currentAppUploadedImageBase64 = p.image;
+    const previewImg = document.getElementById('appUploadedImagePreview');
+    if (previewImg) {
+        previewImg.src = currentAppUploadedImageBase64;
+        previewImg.style.display = 'block';
+    }
+
+    const titleElem = document.getElementById('productModalTitle');
+    if (titleElem) {
+        titleElem.innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Mahsulotni Tahrirlash';
+    }
 
     productModal.classList.remove('hidden');
 }
 
 function handleSaveProduct() {
-    const title = prodTitle ? prodTitle.value.trim() : '';
-    const price = prodPrice ? parseFloat(prodPrice.value) : 0;
-    const category = prodCategory ? prodCategory.value : 'Smartfonlar';
-    const image = prodImage ? prodImage.value.trim() : '';
-    const desc = prodDesc ? prodDesc.value.trim() : '';
-    const isEdit = editProductId && editProductId.value !== '';
+    const editId = document.getElementById('editProductId').value.trim();
+    const title = document.getElementById('prodTitle').value.trim();
+    const price = parseFloat(document.getElementById('prodPrice').value);
+    const category = document.getElementById('prodCategory').value;
+    const image = currentAppUploadedImageBase64 || 'https://via.placeholder.com/300';
+    const description = document.getElementById('prodDesc').value.trim();
 
-    if (!title || !price || !image) {
-        showToast("Iltimos, barcha zaruriy maydonlarni to'ldiring!");
+    if (!title || isNaN(price)) {
+        showToast("Iltimos, barcha zarur maydonlarni to'ldiring!");
         return;
     }
 
-    if (isEdit) {
-        const id = editProductId.value;
-        const index = products.findIndex(p => p.id === id);
-        if (index > -1) {
-            products[index] = { id, title, price, category, image, description: desc };
+    if (editId) {
+        const idx = products.findIndex(p => p.id === editId);
+        if (idx !== -1) {
+            products[idx] = {
+                ...products[idx],
+                title,
+                price,
+                category,
+                image,
+                description
+            };
             saveProducts();
-            showToast("Mahsulot tahrirlandi!");
+            showToast("Mahsulot ma'lumotlari yangilandi!");
 
-            fetch(`${API_BASE_URL}/api/products/${id}`, { method: 'DELETE' }).catch(e => {});
+            fetch(`${API_BASE_URL}/api/products/${editId}`, { method: 'DELETE' }).catch(e => {});
             fetch(`${API_BASE_URL}/api/products`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(products[index])
+                body: JSON.stringify(products[idx])
             }).catch(e => {});
         }
     } else {
         const newProd = {
             id: Date.now().toString(),
-            title, price, category, image, description: desc
+            title,
+            price,
+            category,
+            image,
+            description
         };
         products.unshift(newProd);
         saveProducts();
-        showToast("Yangi mahsulot qo'shildi!");
+        showToast("Yangi mahsulot rasm bilan qo'shildi!");
 
         fetch(`${API_BASE_URL}/api/products`, {
             method: 'POST',

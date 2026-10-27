@@ -316,7 +316,7 @@
                 <button id="closeAdminLoginBtn" class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
-                                <div class="input-group">
+                <div class="input-group">
                     <input type="password" id="adminPinInput" placeholder="Maxfiy PIN-kod" maxlength="12">
                 </div>
                 <p id="adminLoginError" class="error-msg hidden">Xato PIN-kod kiritildi!</p>
@@ -327,7 +327,7 @@
         </div>
     </div>
 
-    <!-- ADD/EDIT PRODUCT MODAL (ADMIN ONLY) -->
+    <!-- ADD/EDIT PRODUCT MODAL (ADMIN ONLY - FILE UPLOAD FROM GALLERY) -->
     <div id="productModal" class="modal-overlay hidden">
         <div class="modal-content center-modal">
             <div class="modal-header">
@@ -355,8 +355,9 @@
                         </select>
                     </div>
                     <div class="input-group">
-                        <label>Rasm URL Manzili:</label>
-                        <input type="url" id="prodImage" placeholder="https://..." required>
+                        <label><i class="fa-solid fa-image"></i> Mahsulot Rasmini Tanlang (Galeriyadan Import):</label>
+                        <input type="file" id="appProdImageFile" accept="image/*" class="form-control" onchange="previewAppUploadedImage(event)" style="padding:10px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:white; width:100%;">
+                        <img id="appUploadedImagePreview" src="" alt="Preview" style="width:90px; height:90px; object-fit:cover; border-radius:12px; margin-top:8px; display:none; border:2px solid #00a8ff;">
                     </div>
                     <div class="input-group">
                         <label>Tavsif (Tavsifi):</label>
