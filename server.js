@@ -5,7 +5,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // In-memory products store
@@ -186,7 +187,7 @@ app.post('/api/messages', (req, res) => {
 
     const newMessage = {
         id: 'MSG-' + Date.now(),
-        sender: sender || 'Courier', // 'Courier' or 'Admin'
+        sender: sender || 'Courier',
         courierName: courierName || 'Kuryer',
         courierPhone: courierPhone || 'Kiritilmagan',
         text: text.trim(),
@@ -219,7 +220,7 @@ app.post('/api/products', (req, res) => {
         title,
         price: parseFloat(price),
         category: category || 'Barchasi',
-        image: image || 'https://via.placeholder.com/300',
+        image: image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&q=80',
         description: description || ''
     };
     products.unshift(newProduct);
