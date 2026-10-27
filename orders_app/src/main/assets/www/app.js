@@ -156,11 +156,11 @@ function startRealtimeSync() {
         console.error("SSE setup error", e);
     }
 
-    // 3. Fallback polling every 4 seconds
+    // 3. Ultra-fast auto polling every 1 second
     setInterval(() => {
         pollLatestOrders(false);
         pollRenderBackendOrders(false);
-    }, 4000);
+    }, 1000);
 }
 
 // POLL RENDER BACKEND ORDERS
