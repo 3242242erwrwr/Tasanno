@@ -1,4 +1,5 @@
 // TASANNO ZAKAZLAR - REAL-TIME ORDER RECEIVER
+const API_BASE_URL = "https://tasanno-im7q.onrender.com";
 const SYNC_CHANNEL = "tasanno_orders_channel_998";
 const SYNC_URL = `https://ntfy.sh/${SYNC_CHANNEL}`;
 
@@ -124,13 +125,15 @@ function setupListeners() {
     // Manual Refresh
     refreshBtn?.addEventListener('click', () => {
         pollLatestOrders(true);
+        pollRenderBackendOrders(true);
     });
 }
 
 // REALTIME LISTENER (SSE & Periodic Poll)
 function startRealtimeSync() {
-    // 1. Initial poll of cached messages
+    // 1. Initial poll of cached messages and Render Backend orders
     pollLatestOrders(false);
+    pollRenderBackendOrders(false);
 
     // 2. Server-Sent Events (SSE) for instant sub-second delivery
     try {
@@ -156,7 +159,39 @@ function startRealtimeSync() {
     // 3. Fallback polling every 4 seconds
     setInterval(() => {
         pollLatestOrders(false);
+        pollRenderBackendOrders(false);
     }, 4000);
+}
+
+// POLL RENDER BACKEND ORDERS
+async function pollRenderBackendOrders(showToastMsg = false) {
+    try {
+        const resp = await fetch(`${API_BASE_URL}/api/orders`, { cache: 'no-cache' });
+        if (!resp.ok) return;
+        const backendOrders = await resp.json();
+        if (Array.isArray(backendOrders)) {
+            const filteredBackend = backendOrders.filter(o => !deletedOrderIds.has(String(o.id)));
+            const isDifferent = JSON.stringify(orders.map(o => ({id: String(o.id), status: o.status}))) !==
+                                JSON.stringify(filteredBackend.map(o => ({id: String(o.id), status: o.status})));
+
+            if (isDifferent) {
+                if (filteredBackend.length > orders.length && orders.length >= 0) {
+                    playOrderChime();
+                }
+                orders = filteredBackend;
+                saveOrders();
+                renderOrders();
+                updateStats();
+                if (showToastMsg) {
+                    showToast("Buyurtmalar serverdan yangilandi!");
+                }
+            } else if (showToastMsg) {
+                showToast("Buyurtmalar ro'yxati yangi");
+            }
+        }
+    } catch (e) {
+        console.warn("Render Backend orders sync error:", e);
+    }
 }
 
 // POLL ORDERS
@@ -219,6 +254,14 @@ function updateOrderStatus(orderId, newStatus) {
     saveOrders();
     renderOrders();
     updateStats();
+
+    // Sync status change to Render Backend Server
+    fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+    }).catch(e => console.warn("Backend status update error:", e));
+
     showToast(`Buyurtma #${orderId} holati: ${newStatus}`);
 }
 
@@ -233,6 +276,19 @@ function cancelAndRemoveOrder(orderId) {
     saveOrders();
     renderOrders();
     updateStats();
+
+    fetch(`${API_BASE_URL}/api/orders/${orderId}`, { method: 'DELETE' })
+        .catch(e => console.warn("Backend delete order error:", e));
+
+    showToast(`Buyurtma #${orderId} o'chirildi`);
+}
+
+    fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'Bekor qilindi' })
+    }).catch(e => console.warn("Backend cancel order error:", e));
+
     showToast(`Buyurtma #${orderId} o'chirildi`);
 }
 

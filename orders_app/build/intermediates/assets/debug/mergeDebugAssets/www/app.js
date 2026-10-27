@@ -1,4 +1,5 @@
 // TASANNO ZAKAZLAR - REAL-TIME ORDER RECEIVER
+const API_BASE_URL = "https://tasanno-im7q.onrender.com";
 const SYNC_CHANNEL = "tasanno_orders_channel_998";
 const SYNC_URL = `https://ntfy.sh/${SYNC_CHANNEL}`;
 
@@ -124,13 +125,15 @@ function setupListeners() {
     // Manual Refresh
     refreshBtn?.addEventListener('click', () => {
         pollLatestOrders(true);
+        pollRenderBackendOrders(true);
     });
 }
 
 // REALTIME LISTENER (SSE & Periodic Poll)
 function startRealtimeSync() {
-    // 1. Initial poll of cached messages
+    // 1. Initial poll of cached messages and Render Backend orders
     pollLatestOrders(false);
+    pollRenderBackendOrders(false);
 
     // 2. Server-Sent Events (SSE) for instant sub-second delivery
     try {
@@ -156,7 +159,30 @@ function startRealtimeSync() {
     // 3. Fallback polling every 4 seconds
     setInterval(() => {
         pollLatestOrders(false);
+        pollRenderBackendOrders(false);
     }, 4000);
+}
+
+// POLL RENDER BACKEND ORDERS
+async function pollRenderBackendOrders(showToastMsg = false) {
+    try {
+        const resp = await fetch(`${API_BASE_URL}/api/orders`, { cache: 'no-cache' });
+        if (!resp.ok) return;
+        const backendOrders = await resp.json();
+        if (Array.isArray(backendOrders)) {
+            let newFound = false;
+            backendOrders.forEach(ord => {
+                if (processIncomingOrder(ord)) {
+                    newFound = true;
+                }
+            });
+            if (newFound && showToastMsg) {
+                showToast("Yangi buyurtmalar Render serveridan yuklandi!");
+            }
+        }
+    } catch (e) {
+        console.warn("Render Backend orders sync error:", e);
+    }
 }
 
 // POLL ORDERS

@@ -1,10 +1,12 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 // In-memory products store
 let products = [
@@ -43,10 +45,51 @@ let products = [
 ];
 
 let orders = [];
+let users = [];
 
-// Health check
-app.get('/', (req, res) => {
-    res.send('TASANNO Backend API Running on Render.com!');
+// Admin web route
+app.get('/admin', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', time: new Date().toISOString() });
+});
+
+// GET users
+app.get('/api/users', (req, res) => {
+    res.json(users);
+});
+
+// POST user
+app.post('/api/users', (req, res) => {
+    const { id, name, phone, avatar } = req.body;
+    if (!name || !phone) {
+        return res.status(400).json({ error: 'Name and phone required' });
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    let existingUser = users.find(u => u.phone.replace(/\D/g, '') === cleanPhone);
+
+    if (existingUser) {
+        existingUser.name = name;
+        existingUser.avatar = avatar || existingUser.avatar;
+        existingUser.lastActive = new Date().toLocaleString('uz-UZ');
+        return res.json({ message: 'User activity updated', user: existingUser });
+    }
+
+    const newUser = {
+        id: id || ('#ID-' + Math.floor(100000 + Math.random() * 900000)),
+        name,
+        phone,
+        avatar: avatar || 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+        registeredAt: new Date().toLocaleString('uz-UZ'),
+        lastActive: new Date().toLocaleString('uz-UZ')
+    };
+
+    users.unshift(newUser);
+    res.status(201).json(newUser);
 });
 
 // GET products
@@ -91,13 +134,55 @@ app.post('/api/orders', (req, res) => {
         return res.status(400).json({ error: 'Name and phone required' });
     }
     const newOrder = {
-        id: 'ORD-' + Math.floor(100000 + Math.random() * 900000),
+        id: orderData.id || ('ORD-' + Math.floor(100000 + Math.random() * 900000)),
         ...orderData,
-        date: new Date().toLocaleString('uz-UZ'),
-        status: 'Yangi'
+        date: orderData.date || new Date().toLocaleString('uz-UZ'),
+        status: orderData.status || 'Yangi'
     };
     orders.unshift(newOrder);
+
+    // Auto register user if not existing
+    const cleanPhone = orderData.phone.replace(/\D/g, '');
+    let user = users.find(u => u.phone.replace(/\D/g, '') === cleanPhone);
+    if (!user) {
+        users.unshift({
+            id: orderData.userId || ('#ID-' + Math.floor(100000 + Math.random() * 900000)),
+            name: orderData.name,
+            phone: orderData.phone,
+            avatar: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
+            registeredAt: newOrder.date,
+            lastActive: newOrder.date
+        });
+    } else {
+        user.lastActive = newOrder.date;
+    }
+
     res.status(201).json(newOrder);
+});
+
+// PUT update order status
+app.put('/api/orders/:id/status', (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const order = orders.find(o => String(o.id) === String(id));
+    if (order) {
+        order.status = status;
+        return res.json({ message: 'Status updated', order });
+    }
+    res.status(404).json({ error: 'Order not found' });
+});
+
+// DELETE single order
+app.delete('/api/orders/:id', (req, res) => {
+    const { id } = req.params;
+    orders = orders.filter(o => String(o.id) !== String(id));
+    res.json({ message: 'Order deleted', id });
+});
+
+// DELETE all orders (Clear all)
+app.delete('/api/orders', (req, res) => {
+    orders = [];
+    res.json({ message: 'All orders cleared' });
 });
 
 app.listen(PORT, () => {

@@ -1,4 +1,5 @@
 // APP CONFIGURATION
+const API_BASE_URL = "https://tasanno-im7q.onrender.com";
 const BOT_TOKEN = "8394907443:AAGOJEcA7SLdfG8MEMP_3fNPeWOD8wqPmHo";
 const ADMIN_PIN = "7777";
 const ADMIN_CHAT_ID = ""; // Buyurtmalar keladigan Admin Telegram ID (ixtiyoriy)
@@ -229,6 +230,7 @@ function initApp() {
         // Check User Login
         if (currentUser) {
             updateUserHeaderUI();
+            syncUserWithBackend(currentUser);
         } else {
             if (authModal) authModal.classList.remove('hidden');
         }
@@ -238,6 +240,23 @@ function initApp() {
     renderProducts();
     loadCartForCurrentUser();
     updateOrdersCount();
+    fetchBackendProducts();
+}
+
+async function fetchBackendProducts() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/products`);
+        if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+                products = data;
+                localStorage.setItem('products', JSON.stringify(products));
+                renderProducts();
+            }
+        }
+    } catch (e) {
+        console.warn("Backend products fetch failed, using local cache:", e);
+    }
 }
 
 if (document.readyState === 'loading') {
@@ -333,6 +352,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (openOrdersBtn && ordersModal) {
         openOrdersBtn.addEventListener('click', () => {
+            fetchBackendOrders();
             renderOrders();
             ordersModal.classList.remove('hidden');
         });
@@ -426,8 +446,22 @@ function handleAuthSubmit() {
     localStorage.setItem('currentUser', JSON.stringify(currentUser));
     updateUserHeaderUI();
     loadCartForCurrentUser();
+    syncUserWithBackend(currentUser);
     authModal.classList.add('hidden');
     showToast(`Xush kelibsiz, ${name}!`);
+}
+
+async function syncUserWithBackend(userObj) {
+    if (!userObj || !userObj.phone) return;
+    try {
+        fetch(`${API_BASE_URL}/api/users`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userObj)
+        }).catch(err => console.warn("User sync error:", err));
+    } catch (e) {
+        console.warn("User sync error:", e);
+    }
 }
 
 function openUserProfileModal() {
@@ -801,6 +835,18 @@ function handleSaveProduct() {
             description
         };
         products.unshift(newProd);
+
+        // Sync with Render Backend
+        try {
+            fetch(`${API_BASE_URL}/api/products`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newProd)
+            }).catch(e => console.warn("Backend save product error:", e));
+        } catch (e) {
+            console.warn("Backend save product error:", e);
+        }
+
         showToast("Yangi mahsulot do'konga joylandi!");
     }
 
@@ -815,6 +861,14 @@ function deleteProduct(id) {
         products = products.filter(p => p.id !== id);
         localStorage.setItem('products', JSON.stringify(products));
         renderProducts();
+
+        try {
+            fetch(`${API_BASE_URL}/api/products/${id}`, { method: 'DELETE' })
+                .catch(e => console.warn("Backend delete product error:", e));
+        } catch (e) {
+            console.warn("Backend delete product error:", e);
+        }
+
         showToast("Mahsulot o'chirildi");
     }
 }
@@ -861,6 +915,17 @@ async function handleSubmitOrder() {
     localStorage.setItem('orders', JSON.stringify(orders));
     updateOrdersCount();
 
+    // Send to Render Backend Server
+    try {
+        fetch(`${API_BASE_URL}/api/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newOrder)
+        }).catch(err => console.warn("Render orders API error:", err));
+    } catch (e) {
+        console.warn("Render order POST error:", e);
+    }
+
     // Prepare Telegram Bot Message
     const message = `🛍 <b>TASANNO - YANGI BUYURTMA #${newOrder.id}</b>${userTag}\n\n` +
         `👤 <b>Mijoz:</b> ${name}\n` +
@@ -897,6 +962,28 @@ async function sendTelegramMessage(chatId, text) {
         });
     } catch (e) {
         console.error('Telegram API error:', e);
+    }
+}
+
+async function fetchBackendOrders() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/orders`);
+        if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data) && data.length > 0) {
+                const existingIds = new Set(orders.map(o => String(o.id)));
+                data.forEach(bo => {
+                    if (!existingIds.has(String(bo.id))) {
+                        orders.unshift(bo);
+                    }
+                });
+                localStorage.setItem('orders', JSON.stringify(orders));
+                updateOrdersCount();
+                renderOrders();
+            }
+        }
+    } catch (e) {
+        console.warn("Backend orders fetch error:", e);
     }
 }
 
