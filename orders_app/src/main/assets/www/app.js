@@ -168,11 +168,6 @@ function startRealtimeSync() {
         syncOrdersFromBackend(false);
     }, 2000);
 }
-        }
-    } catch (e) {
-        console.error("Poll error:", e);
-    }
-}
 
 // PROCESS NEW ORDER
 function processIncomingOrder(orderObj) {
